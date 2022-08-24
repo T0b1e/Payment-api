@@ -12,7 +12,7 @@ def getValue():
     return sheet
 
 dic = {
-    "เข้าเช้า"    :"breakfast",
+    "ข้าวเช้า"    :"breakfast",
     "ข้าวเที่ยง"   :"lunch",
     "ข้าวเย็น"    :"dinner",
     "ขนม/น้ำดื่ม" :"snack",
