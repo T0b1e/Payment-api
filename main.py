@@ -27,7 +27,7 @@ dic = {
 
 def findValue():
     sheet = getValue()
-    day = datetime.datetime.now().strftime("%d")
+    day = int(datetime.datetime.now().strftime("%d")) + 1
     pay = sheet.worksheet(str(datetime.datetime.now().strftime("%B")))
 
     Type_str = pay.col_values(33)[10:21]
