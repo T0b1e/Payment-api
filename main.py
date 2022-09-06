@@ -9,6 +9,7 @@ def getValue():
     creds = ServiceAccountCredentials.from_json_keyfile_name("keys.json", scope)
     client = gspread.authorize(creds)
     sheet = client.open('Payments')
+
     return sheet
 
 dic = {
@@ -51,3 +52,4 @@ def findValue():
 
     return [day, dailyPay, remainPay, maxType, minType, sum_avg]
 
+findValue()
