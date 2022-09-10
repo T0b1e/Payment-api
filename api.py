@@ -1,5 +1,4 @@
 from main import *
-
 from flask import Flask
 
 app = Flask(__name__)
@@ -40,20 +39,14 @@ def mins():
     data = findValue()
     return {"min": data[4]}
 
-@app.route("/upload")
+@app.route("/upload", methods = ['GET'])
 def upload():
 
     sheet = getValue()
     day = int(datetime.datetime.now().strftime("%d")) + 1
     pay = sheet.worksheet(str(datetime.datetime.now().strftime("%B")))
 
-    try:
-
-        data = request.args.get('types')
-
-    except ValueError:
-
-        pass
+    data = request.args.get('types')
 
     dic = {
     "ข้าวเช้า"    :["breakfast", 11],
@@ -72,6 +65,7 @@ def upload():
     text=""
     numbers=""
     res=[]
+
     for i in data:
         if(i.isdigit()):
             numbers+=i
@@ -81,6 +75,7 @@ def upload():
     res.append(numbers)
 
     for x, y in dic.items():
+        
         if res[0] == x:
             types = y[1]
 
@@ -93,6 +88,6 @@ def upload():
         new_record =  int(record) + int(res[1])
         pay.update_cell(types, day, new_record)
 
-    return 0
+    return {'message': True}, 200
 
 # flask --app api run
