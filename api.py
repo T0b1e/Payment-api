@@ -40,4 +40,59 @@ def mins():
     data = findValue()
     return {"min": data[4]}
 
-# flask --app genAPI run
+@app.route("/upload")
+def upload():
+
+    sheet = getValue()
+    day = int(datetime.datetime.now().strftime("%d")) + 1
+    pay = sheet.worksheet(str(datetime.datetime.now().strftime("%B")))
+
+    try:
+
+        data = request.args.get('types')
+
+    except ValueError:
+
+        pass
+
+    dic = {
+    "ข้าวเช้า"    :["breakfast", 11],
+    "ข้าวเที่ยง"   :["lunch", 12],
+    "ข้าวเย็น"    :["dinner", 13],
+    "ขนม/น้ำดื่ม" :["snack", 14],
+    "เซเว่น"     :["seven-eleven", 15],
+    "ค่าเดินทาง"  :["travel", 16],
+    "อุปกรณ์การศึกษา/กีฬา":["education", 17],
+    "ค่าสังสรรค์"  :["entertainment", 18],
+    "อุปกรณ์ไฟฟ้า" :["tools", 19],
+    "ลงทุน (เงินส่วนตัว)":["invest", 20],
+    "อื่นๆ"       :["etc.", 21]
+}
+
+    text=""
+    numbers=""
+    res=[]
+    for i in data:
+        if(i.isdigit()):
+            numbers+=i
+        else:
+            text+=i
+    res.append(text)
+    res.append(numbers)
+
+    for x, y in dic.items():
+        if res[0] == x:
+            types = y[1]
+
+    record = pay.cell(types, day).value
+
+    if record == None :
+        new_record = res[1]
+        pay.update_cell(types, day,res[1])
+    else:
+        new_record =  int(record) + int(res[1])
+        pay.update_cell(types, day, new_record)
+
+    return 0
+
+# flask --app api run

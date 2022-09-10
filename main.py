@@ -1,3 +1,4 @@
+from flask import Flask, request
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import datetime 
@@ -48,8 +49,4 @@ def findValue():
     avg_int = [float(y) for y in avg_str]
     sum_avg = sum(avg_int) / int(day) - 1 # ค่าใช้จ่ายเฉลี่ยในเดือนนี้
 
-    # print(dailyPay, remainPay, maxType, minType, sum_avg)
-
     return [day, dailyPay, remainPay, maxType, minType, sum_avg]
-
-findValue()
