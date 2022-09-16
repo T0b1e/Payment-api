@@ -46,7 +46,15 @@ def upload():
     day = int(datetime.datetime.now().strftime("%d")) + 1
     pay = sheet.worksheet(str(datetime.datetime.now().strftime("%B")))
 
-    data = request.args.get('types')
+    try:
+
+        types = request.args.get('types')
+        money = int(request.args.get('money'))
+
+    except ValueError:
+
+        types = 'อื่นๆ'
+        money = 0
 
     dic = {
     "ข้าวเช้า"    :["breakfast", 11],
@@ -62,32 +70,23 @@ def upload():
     "อื่นๆ"       :["etc.", 21]
 }
 
-    text=""
-    numbers=""
-    res=[]
-
-    for i in data:
-        if(i.isdigit()):
-            numbers+=i
-        else:
-            text+=i
-    res.append(text)
-    res.append(numbers)
-
     for x, y in dic.items():
-        
-        if res[0] == x:
+        if types == x:
             types = y[1]
 
     record = pay.cell(types, day).value
 
-    if record == None :
-        new_record = res[1]
-        pay.update_cell(types, day,res[1])
-    else:
-        new_record =  int(record) + int(res[1])
-        pay.update_cell(types, day, new_record)
+    try:
 
-    return {'message': True}, 200
+        if record == None : # if there is blank cell
+            pay.update_cell(types, day, money) # update money into nontype cell
+        else:
+            pay.update_cell(types, day, int(record) + money)
+
+        return {'message': True}, 200
+
+    except TypeError:
+
+        return {'message': False}, 401
 
 # flask --app api run
