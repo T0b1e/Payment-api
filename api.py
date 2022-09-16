@@ -85,7 +85,7 @@ def upload():
         else:
             pay.update_cell(types, day, int(record) + money)
 
-        return {'Attemp': f'{money} --> {int(record) }',
+        return {'Attemp': f'{money} --> {int(record) + money}',
                 'remain': pay.cell(23, day).value}, 200
 
     except TypeError:
