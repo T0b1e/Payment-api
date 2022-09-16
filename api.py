@@ -82,11 +82,14 @@ def upload():
 
         if record == None : # if there is blank cell
             pay.update_cell(types, day, money) # update money into nontype cell
+            return {'Attemp': f'0 --> {money}',
+                    'remain': pay.cell(23, day).value}, 200
         else:
             pay.update_cell(types, day, int(record) + money)
+            return {'Attemp': f'{record} --> {int(record) + money}',
+                    'remain': pay.cell(23, day).value}, 200
 
-        return {'Attemp': f'{money} --> {int(record) + money}',
-                'remain': pay.cell(23, day).value}, 200
+
 
     except TypeError:
 
