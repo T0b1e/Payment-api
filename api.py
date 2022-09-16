@@ -5,13 +5,15 @@ app = Flask(__name__)
 
 @app.route("/")
 def index():
-    data = findValue()
-    return {"date": data[0],
+    # data = findValue()
+    """  return {"date": data[0],
             "daily": data[1],
             "avg": data[5],
             "remain": data[2],
             "max": data[3],
-            "min": data[4]}
+            "min": data[4]}"""
+    return {'messgae': True}, 200
+
 
 @app.route("/daily")
 def daily():
@@ -83,10 +85,12 @@ def upload():
         else:
             pay.update_cell(types, day, int(record) + money)
 
-        return {'message': True}, 200
+        return {'Attemp': f'{money} --> {int(record) }',
+                'remain': pay.cell(23, day).value}, 200
 
     except TypeError:
 
-        return {'message': False}, 401
+        return {'Attemp': 0,
+                'remain': 0}, 404
 
 # flask --app api run
