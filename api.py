@@ -3,50 +3,41 @@ from flask import Flask
 
 app = Flask(__name__)
 
+day = int(datetime.datetime.now().strftime("%d")) + 1
+pay = dataNow()
+
 @app.route("/")
 def index():
-    # data = findValue()
-    """  return {"date": data[0],
-            "daily": data[1],
-            "avg": data[5],
-            "remain": data[2],
-            "max": data[3],
-            "min": data[4]}"""
     return {'messgae': True}, 200
 
 
-@app.route("/daily")
-def daily():
-    data = findValue()
-    return {"daily": data[1]}
+@app.route("/today")
+def today():
+    todayRaw = pay.col_values(day)[10:21]
+    today = []
+    for x in todayRaw:
+        if x == "":
+            x = 0
+            today.append(x)
+        else:
+            today.append(x)
 
-@app.route("/average")
-def avg():
-    data = findValue()
-    return {"avg": data[5]}
-
-@app.route("/remain")
-def remain():
-    data = findValue()
-    return {"remain": data[2]}
-
-@app.route("/max")
-def maxs():
-    data = findValue()
-    return {"max": data[3]}
-    # {"max":"\u0e04\u0e48\u0e32\u0e40\u0e14\u0e34\u0e19\u0e17\u0e32\u0e07"}
-
-@app.route("/min")
-def mins():
-    data = findValue()
-    return {"min": data[4]}
+    return {
+            "ข้าวเช้า"    : today[0],
+            "ข้าวเที่ยง"   : today[1],
+            "ข้าวเย็น"    : today[2],
+            "ขนม/น้ำดื่ม" : today[3],
+            "เซเว่น"     : today[4],
+            "ค่าเดินทาง"  : today[5],
+            "อุปกรณ์การศึกษา/กีฬา": today[6],
+            "ค่าสังสรรค์"  : today[7],
+            "อุปกรณ์ไฟฟ้า" : today[8],
+            "ลงทุน (เงินส่วนตัว)": today[9],
+            "อื่นๆ"       : today[10],
+            }
 
 @app.route("/upload", methods = ['GET'])
 def upload():
-
-    sheet = getValue()
-    day = int(datetime.datetime.now().strftime("%d")) + 1
-    pay = sheet.worksheet(str(datetime.datetime.now().strftime("%B")))
 
     try:
 
@@ -94,8 +85,6 @@ def upload():
             pay.update_cell(types, day, int(record) + money)
             return {'Attemp': f'{record} --> {int(record) + money}',
                     'remain': pay.cell(23, day).value}, 200
-
-
 
     except TypeError:
 
