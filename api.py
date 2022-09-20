@@ -80,6 +80,36 @@ def everyday():
             "อื่นๆ"       : e[10],
             }
 
+@app.route("/custom", methods = ['GET'])
+def custom():
+
+    date = request.args.get('day')
+
+    customRaw = pay.col_values(date)[10:21]
+    today = []
+    for x in customRaw:
+        if x == "":
+            x = 0
+            today.append(x)
+        else:
+            today.append(x)
+            
+    return {
+            "วัน"        : f'{date}',
+            "ข้าวเช้า"    : today[0],
+            "ข้าวเที่ยง"   : today[1],
+            "ข้าวเย็น"    : today[2],
+            "ขนม/น้ำดื่ม" : today[3],
+            "เซเว่น"     : today[4],
+            "ค่าเดินทาง"  : today[5],
+            "อุปกรณ์การศึกษา/กีฬา": today[6],
+            "ค่าสังสรรค์"  : today[7],
+            "อุปกรณ์ไฟฟ้า" : today[8],
+            "ลงทุน (เงินส่วนตัว)": today[9],
+            "อื่นๆ"       : today[10],
+            }
+
+
 @app.route("/upload", methods = ['GET'])
 def upload():
 
