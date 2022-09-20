@@ -1,7 +1,8 @@
-from flask import Flask, request
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import datetime 
+
+
 
 def getValue():
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/spreadsheets",
@@ -31,4 +32,21 @@ def dataNow():
     sheet = getValue()
     pay = sheet.worksheet(str(datetime.datetime.now().strftime("%B")))
     return pay
+
+def everydayValue():
+    data = dataNow()
+
+    rawData = []
+    sumList = []
+
+    for a in range(11, 22):
+
+        rawData.append(data.row_values(a)[1:])
+    
+    for x in rawData:   
+
+        sumList.append(sum([float(y.replace(',', '')) for y in x if y != '']))
+
+    return sumList
+
 
