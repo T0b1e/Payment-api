@@ -83,9 +83,9 @@ def everyday():
 @app.route("/custom", methods = ['GET'])
 def custom():
 
-    date = request.args.get('day')
+    date = int(request.args.get('day'))
 
-    customRaw = pay.col_values(date)[10:21]
+    customRaw = pay.col_values(date + 1)[10:21]
     today = []
     for x in customRaw:
         if x == "":
