@@ -3,6 +3,8 @@ from flask import Flask, request
 
 app = Flask(__name__)
 
+global day
+
 day = int(datetime.datetime.now().strftime("%d")) + 1
 pay = dataNow()
 
@@ -18,9 +20,9 @@ def today():
     for x in todayRaw:
         if x == "":
             x = 0
-            today.append(x)
+            today.append(round(x, 2))
         else:
-            today.append(x)
+            today.append(round(x, 2))
 
     return {
             "วัน"        : f'{day}',
@@ -35,6 +37,8 @@ def today():
             "อุปกรณ์ไฟฟ้า" : today[8],
             "ลงทุน (เงินส่วนตัว)": today[9],
             "อื่นๆ"       : today[10],
+            "ยอดรวม": sum([i for i in today]),
+            "คงเหลือ":0,
             }
 
 @app.route("/yesterday")
@@ -44,9 +48,9 @@ def yesterday():
     for x in todayRaw:
         if x == "":
             x = 0
-            today.append(x)
+            today.append(round(x, 2))
         else:
-            today.append(x)
+            today.append(round(x, 2))
     return {
             "วัน"        : f'{day - 1}',
             "ข้าวเช้า"    : today[0],
@@ -60,6 +64,8 @@ def yesterday():
             "อุปกรณ์ไฟฟ้า" : today[8],
             "ลงทุน (เงินส่วนตัว)": today[9],
             "อื่นๆ"       : today[10],
+            "ยอดรวม": sum([i for i in today]),
+            "คงเหลือ":0,
             }
 
 @app.route("/everyday")
@@ -78,6 +84,8 @@ def everyday():
             "อุปกรณ์ไฟฟ้า" : e[8],
             "ลงทุน (เงินส่วนตัว)": e[9],
             "อื่นๆ"       : e[10],
+            "ยอดรวม": sum([i for i in e]),
+            "คงเหลือ":0,
             }
 
 @app.route("/custom", methods = ['GET'])
@@ -90,9 +98,9 @@ def custom():
     for x in customRaw:
         if x == "":
             x = 0
-            today.append(x)
+            today.append(round(x, 2))
         else:
-            today.append(x)
+            today.append(round(x, 2))
             
     return {
             "วัน"        : f'{date}',
@@ -107,6 +115,8 @@ def custom():
             "อุปกรณ์ไฟฟ้า" : today[8],
             "ลงทุน (เงินส่วนตัว)": today[9],
             "อื่นๆ"       : today[10],
+            "ยอดรวม": sum([i for i in today]),
+            "คงเหลือ":0,
             }
 
 
@@ -135,7 +145,7 @@ def upload():
     "อุปกรณ์ไฟฟ้า" :["tools", 19],
     "ลงทุน (เงินส่วนตัว)":["invest", 20],
     "อื่นๆ"       :["etc.", 21]
-}
+    }
 
     for x, y in dic.items():
         if types == x:
@@ -164,5 +174,60 @@ def upload():
 
         return {'Attemp': 0,
                 'remain': 0}, 404
+
+@app.route("/edit")
+def edit():
+
+    dateType = request.args.get('dateType')
+    dateSpecific = request.args.get('dateSpecific')
+    types = request.args.get('types')
+    money = request.args.get('money')
+    day = int(datetime.datetime.now().strftime("%d")) + 1
+    
+    dic = {
+    "ข้าวเช้า"    :["breakfast", 11],
+    "ข้าวเที่ยง"   :["lunch", 12],
+    "ข้าวเย็น"    :["dinner", 13],
+    "ขนม/น้ำดื่ม" :["snack", 14],
+    "เซเว่น"     :["seven-eleven", 15],
+    "ค่าเดินทาง"  :["travel", 16],
+    "อุปกรณ์การศึกษา/กีฬา":["education", 17],
+    "ค่าสังสรรค์"  :["entertainment", 18],
+    "อุปกรณ์ไฟฟ้า" :["tools", 19],
+    "ลงทุน (เงินส่วนตัว)":["invest", 20],
+    "อื่นๆ"       :["etc.", 21]
+    }
+
+    if dateType == 'today':
+
+        for x, y in dic.items():
+            if types == x:
+                types = y[1]
+
+        record = pay.cell(types, day).value
+
+        pay.update_cell(types, day, money) 
+
+    else: # Custom
+
+        if dateSpecific != 'None' or dateSpecific != '':
+
+            for x, y in dic.items():
+                if types == x:
+                    types = y[1]
+
+            record = pay.cell(types, dateSpecific).value
+
+            pay.update_cell(types, dateSpecific, money) 
+
+            day = dateSpecific
+
+    return {
+            "วัน"        : f'{day}',
+            "ผลลัพธ์" : f'เปลี่ยนค่าจาก {record} --> {money}',
+            "ผลต่าง": f' ผลต่าง {int(money) - int(record)}',
+            }
+
+
 
 # flask --app api run
