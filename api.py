@@ -179,7 +179,7 @@ def upload():
 def edit():
 
     dateType = request.args.get('dateType')
-    dateSpecific = request.args.get('dateSpecific')
+    dateSpecific = int(request.args.get('dateSpecific')) + 1
     types = request.args.get('types')
     money = request.args.get('money')
     day = int(datetime.datetime.now().strftime("%d")) + 1
@@ -206,11 +206,17 @@ def edit():
 
         record = pay.cell(types, day).value
 
-        pay.update_cell(types, day, money) 
+        if record ==  None:
+
+            return {'message': 'There has no money yet on record yet'}
+
+        else:
+
+            pay.update_cell(types, day, money) 
 
     else: # Custom
 
-        if dateSpecific != 'None' or dateSpecific != '':
+        if dateSpecific != 0:
 
             for x, y in dic.items():
                 if types == x:
@@ -218,14 +224,26 @@ def edit():
 
             record = pay.cell(types, dateSpecific).value
 
-            pay.update_cell(types, dateSpecific, money) 
+            if record == None:
 
-            day = dateSpecific
+                return {'message': 'There has no money on record yet'}
+            
+            else:
+
+                pay.update_cell(types, dateSpecific, money) 
+
+                day = dateSpecific
+
+    money = int(money)
+    record = int(record)
+
+    diff = money - record if money > record else record - money
+    if diff == 0 : diff = 'ไม่มีการเปลี่ยนแปลง'
 
     return {
             "วัน"        : f'{day}',
             "ผลลัพธ์" : f'เปลี่ยนค่าจาก {record} --> {money}',
-            "ผลต่าง": f' ผลต่าง {int(money) - int(record)}',
+            "ผลต่าง": f' ผลต่าง {diff}',
             }
 
 
