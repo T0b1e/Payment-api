@@ -181,7 +181,7 @@ def edit():
     dateType = request.args.get('dateType')
     dateSpecific = int(request.args.get('dateSpecific')) + 1
     types = request.args.get('types')
-    money = request.args.get('money')
+    money = int(request.args.get('money'))
     day = int(datetime.datetime.now().strftime("%d")) + 1
     
     dic = {
@@ -232,7 +232,7 @@ def edit():
 
                 pay.update_cell(types, dateSpecific, money) 
 
-                day = dateSpecific
+                day = dateSpecific - 1
 
     money = int(money)
     record = int(record)
