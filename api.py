@@ -15,7 +15,7 @@ def index():
 
 @app.route("/today")
 def today():
-    todayRaw = pay.col_values(day)[10:21]
+    todayRaw = pay.col_values(day)[10:21] # todayRaw --> output
     today = []
     for x in todayRaw:
         if x == "" or None:
@@ -38,19 +38,19 @@ def today():
             "ลงทุน (เงินส่วนตัว)": today[9],
             "อื่นๆ"       : today[10],
             "ยอดรวม": sum([i for i in today]),
-            "คงเหลือ":0,
+            "คงเหลือ": pay.col_values(day)[22],
             }
 
 @app.route("/yesterday")
 def yesterday():
-    todayRaw = pay.col_values(day - 1)[10:21]
+    todayRaw = pay.col_values(day - 1)[10:21] # todayRaw --> output
     today = []
     for x in todayRaw:
-        if x == "":
+        if x == "" or None:
             x = 0
-            today.append(round(x, 2))
+            today.append(round(int(x), 2))
         else:
-            today.append(round(x, 2))
+            today.append(round(int(x), 2))
     return {
             "วัน"        : f'{day - 1}',
             "ข้าวเช้า"    : today[0],
@@ -65,14 +65,14 @@ def yesterday():
             "ลงทุน (เงินส่วนตัว)": today[9],
             "อื่นๆ"       : today[10],
             "ยอดรวม": sum([i for i in today]),
-            "คงเหลือ":0,
+            "คงเหลือ": pay.col_values(day - 1)[22],
             }
 
 @app.route("/everyday")
 def everyday():
     e = everydayValue()
     return {
-            "วัน"        : f'1 --> {day}',
+            "วัน"        : f'1 --> {day - 1}',
             "ข้าวเช้า"    : e[0],
             "ข้าวเที่ยง"   : e[1],
             "ข้าวเย็น"    : e[2],
@@ -84,8 +84,8 @@ def everyday():
             "อุปกรณ์ไฟฟ้า" : e[8],
             "ลงทุน (เงินส่วนตัว)": e[9],
             "อื่นๆ"       : e[10],
-            "ยอดรวม": sum([i for i in e]),
-            "คงเหลือ":0,
+            "ยอดรวม": round(sum([i for i in e]), 2),
+            "คงเหลือ": pay.col_values(31)[22],
             }
 
 @app.route("/custom", methods = ['GET'])
@@ -93,14 +93,17 @@ def custom():
 
     date = int(request.args.get('day'))
 
-    customRaw = pay.col_values(date + 1)[10:21]
+    data = pay.col_values(date + 1)
+    customRaw = data[10:21]
+    output = data[22]
     today = []
+
     for x in customRaw:
-        if x == "":
+        if x == "" or None:
             x = 0
-            today.append(round(x, 2))
+            today.append(round(int(x), 2))
         else:
-            today.append(round(x, 2))
+            today.append(round(int(x), 2))
             
     return {
             "วัน"        : f'{date}',
@@ -116,7 +119,7 @@ def custom():
             "ลงทุน (เงินส่วนตัว)": today[9],
             "อื่นๆ"       : today[10],
             "ยอดรวม": sum([i for i in today]),
-            "คงเหลือ":0,
+            "คงเหลือ": output,
             }
 
 
