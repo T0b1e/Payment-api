@@ -18,11 +18,11 @@ def today():
     todayRaw = pay.col_values(day)[10:21]
     today = []
     for x in todayRaw:
-        if x == "":
+        if x == "" or None:
             x = 0
-            today.append(round(x, 2))
+            today.append(round(int(x), 2))
         else:
-            today.append(round(x, 2))
+            today.append(round(int(x), 2))
 
     return {
             "วัน"        : f'{day}',
