@@ -3,6 +3,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 import datetime 
 
 def getValue():
+
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/spreadsheets",
             "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
 
@@ -10,6 +11,7 @@ def getValue():
     client = gspread.authorize(creds)
     sheet = client.open('Payments')
 
+    # sb = sheet.share('narongkorn@tobpayment.iam.gserviceaccount.com', perm_type='user', role='editor')
     return sheet
 
 dic = {
@@ -27,9 +29,13 @@ dic = {
 }
 
 def dataNow():
+    
     sheet = getValue()
     pay = sheet.worksheet(str(datetime.datetime.now().strftime("%B")))
+
     return pay
+
+getValue()
 
 def everydayValue():
     data = dataNow()
