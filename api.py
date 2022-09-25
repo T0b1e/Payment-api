@@ -3,8 +3,6 @@ from flask import Flask, request
 
 app = Flask(__name__)
 
-global day
-
 day = int(datetime.datetime.now().strftime("%d")) + 1
 pay = dataNow()
 
@@ -101,8 +99,9 @@ def custom():
     for x in customRaw:
         if x == "" or None:
             x = 0
-            today.append(round(int(x), 2))
+            today.append(0)
         else:
+            x = x.replace(',', '')
             today.append(round(int(x), 2))
             
     return {
@@ -150,6 +149,8 @@ def upload():
     "อื่นๆ"       :["etc.", 21]
     }
 
+    historyData('upload', types, money)
+
     for x, y in dic.items():
         if types == x:
             types = y[1]
@@ -158,7 +159,7 @@ def upload():
 
     try:
 
-        if record == None : # if there is blank cell
+        if record == None or '': # if there is blank cell
             pay.update_cell(types, day, money) # update money into nontype cell
             return {'Attemp': f'0 --> {money}',
                     'remain': pay.cell(23, day).value}, 200
@@ -171,7 +172,7 @@ def upload():
         else:
             pay.update_cell(types, day, int(record) + money)
             return {'Attemp': f'{record} --> {int(record) + money}',
-                    'remain': pay.cell(23, day).value - (int(record) + money)}, 200
+                    'remain': float(pay.cell(23, day).value) - (float(record) + money)}, 200
 
     except TypeError:
 
@@ -199,7 +200,10 @@ def edit():
     "อุปกรณ์ไฟฟ้า" :["tools", 19],
     "ลงทุน (เงินส่วนตัว)":["invest", 20],
     "อื่นๆ"       :["etc.", 21]
+
     }
+
+    historyData('edit', types, money)
 
     if dateType == 'today':
 

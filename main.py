@@ -2,8 +2,6 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import datetime 
 
-
-
 def getValue():
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/spreadsheets",
             "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
@@ -49,4 +47,26 @@ def everydayValue():
 
     return sumList
 
+ 
+def historyData(method, types, money): # upload?types=ข้าวเช้า&money=20
 
+    import time
+
+    day = int(datetime.datetime.now().strftime("%d")) + 1
+
+    sheet = getValue()
+    pays = sheet.worksheet(f'History{str(datetime.datetime.now().strftime("%B"))[:3]}')
+    data = pays.col_values(day)
+    count = 1
+    
+    for x in data:
+        if x != None or '': # มีข้อมูลด้านใน
+            count += 1
+        else: # ไม่มีข้อมูลด้านใน
+            break
+
+    sentence = f'[{time.strftime("%H:%M", time.localtime())}, {method}, {types}, {money}]'
+    pays.update_cell(count, day, sentence)
+        
+
+    return None
