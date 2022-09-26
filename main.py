@@ -49,7 +49,7 @@ def everydayValue():
     
     for x in rawData:   
 
-        sumList.append(sum([float(y.replace(',', '')) for y in x if y != '']))
+        sumList.append(round(sum([float(y.replace(',', '')) for y in x if y != '']), 2))
 
     return sumList
 
