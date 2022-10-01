@@ -43,28 +43,31 @@ def today():
 def yesterday():
     todayRaw = pay.col_values(day - 1)[10:21] # todayRaw --> output
     today = []
-    for x in todayRaw:
-        if x == "" or None:
-            x = 0
-            today.append(round(int(x.replace(',', '')), 2))
-        else:
-            today.append(round(int(x.replace(',', '')), 2))
-    return {
-            "วัน"        : f'{day - 1}',
-            "ข้าวเช้า"    : today[0],
-            "ข้าวเที่ยง"   : today[1],
-            "ข้าวเย็น"    : today[2],
-            "ขนม/น้ำดื่ม" : today[3],
-            "เซเว่น"     : today[4],
-            "ค่าเดินทาง"  : today[5],
-            "อุปกรณ์การศึกษา/กีฬา": today[6],
-            "ค่าสังสรรค์"  : today[7],
-            "อุปกรณ์ไฟฟ้า" : today[8],
-            "ลงทุน (เงินส่วนตัว)": today[9],
-            "อื่นๆ"       : today[10],
-            "ยอดรวม": sum([i for i in today]),
-            "คงเหลือ": pay.col_values(day - 1)[22],
-            }
+    try:
+        for x in todayRaw:
+            if x == "" or None:
+                today.append(0)
+            else:
+                today.append(round(int(str(x).replace(',', '')), 2))
+        return {
+                "วัน"        : f'{day - 1}',
+                "ข้าวเช้า"    : today[0],
+                "ข้าวเที่ยง"   : today[1],
+                "ข้าวเย็น"    : today[2],
+                "ขนม/น้ำดื่ม" : today[3],
+                "เซเว่น"     : today[4],
+                "ค่าเดินทาง"  : today[5],
+                "อุปกรณ์การศึกษา/กีฬา": today[6],
+                "ค่าสังสรรค์"  : today[7],
+                "อุปกรณ์ไฟฟ้า" : today[8],
+                "ลงทุน (เงินส่วนตัว)": today[9],
+                "อื่นๆ"       : today[10],
+                "ยอดรวม": sum([i for i in today]),
+                "คงเหลือ": pay.col_values(day - 1)[22],
+                }
+
+    except TypeError:
+        return {'message': 'ต้นเดือน'}, 401
 
 @app.route("/everyday")
 def everyday():
@@ -102,7 +105,7 @@ def custom():
             today.append(0)
         else:
             x = x.replace(',', '')
-            today.append(round(int(x), 2))
+            today.append(round(int(str(x).replace(',', '')), 2))
             
     return {
             "วัน"        : f'{date}',
