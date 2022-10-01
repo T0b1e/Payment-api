@@ -17,7 +17,7 @@ def today():
 
     try:
 
-        todayDateGet = request.args.get('todaysync')
+        todayDateGet = request.args.get('today')
 
     except ValueError:
 
