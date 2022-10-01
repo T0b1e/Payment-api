@@ -17,7 +17,7 @@ def today():
 
     try:
 
-        todayDateGet = request.args.get('today')
+        todayDateGet = int(request.args.get('today')[:1])
 
     except ValueError:
 
@@ -63,7 +63,7 @@ def yesterday():
 
     try:
 
-        todayDateGet = request.args.get('today')
+        todayDateGet = int(request.args.get('today')[:1])
 
     except ValueError:
 
@@ -105,7 +105,7 @@ def everyday():
 
     try:
 
-        todayDateGet = request.args.get('today')
+        todayDateGet = int(request.args.get('today')[:1])
 
     except ValueError:
 
@@ -170,7 +170,7 @@ def upload():
 
     try:
 
-        todayDateGet = request.args.get('today')
+        todayDateGet = int(request.args.get('today')[:1])
         types = request.args.get('types')
         money = int(request.args.get('money'))
 
@@ -236,7 +236,7 @@ def edit():
 
     try:
 
-        todayDateGet = request.args.get('today') # it will get ignore if you using dateType as not custom
+        todayDateGet = int(request.args.get('today')[:1]) # it will get ignore if you using dateType as not custom
 
         dateType = request.args.get('dateType')
         dateSpecific = int(request.args.get('dateSpecific')) + 1
