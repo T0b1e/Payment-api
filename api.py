@@ -12,33 +12,41 @@ def index():
     return {'messgae': True}, 200
 
 
-@app.route("/today")
+@app.route("/today", methods = ['GET'])
 def today():
+
     try:
-        todayRaw = pay.col_values(day + 1)[10:21] # todayRaw --> output
-        today = []
+
+        todayDateGet = request.args.get('today')
+
+    except ValueError:
+
+        todayDateGet if todayDateGet  != day else todayDateGet 
+
+    try:
+        todayRaw = pay.col_values(todayDateGet + 1)[10:21] # todayRaw --> output
+        todayData = []
         for x in todayRaw:
             if x == "" or x == None:
-                x = 0
-                today.append(0)
+                todayData.append(0)
             else:
-                today.append(round(int(str(x).replace(',', '')), 2))
+                todayData.append(round(int(str(x).replace(',', '')), 2))
         
         return {
-                "วัน"        : f'{day}',
-                "ข้าวเช้า"    : today[0],
-                "ข้าวเที่ยง"   : today[1],
-                "ข้าวเย็น"    : today[2],
-                "ขนม/น้ำดื่ม" : today[3],
-                "เซเว่น"     : today[4],
-                "ค่าเดินทาง"  : today[5],
-                "อุปกรณ์การศึกษา/กีฬา": today[6],
-                "ค่าสังสรรค์"  : today[7],
-                "อุปกรณ์ไฟฟ้า" : today[8],
-                "ลงทุน (เงินส่วนตัว)": today[9],
-                "อื่นๆ"       : today[10],
-                "ยอดรวม": sum([i for i in today]),
-                "คงเหลือ": pay.col_values(day)[22],
+                "วัน"        : f'{todayDateGet}',
+                "ข้าวเช้า"    : todayData[0],
+                "ข้าวเที่ยง"   : todayData[1],
+                "ข้าวเย็น"    : todayData[2],
+                "ขนม/น้ำดื่ม" : todayData[3],
+                "เซเว่น"     : todayData[4],
+                "ค่าเดินทาง"  : todayData[5],
+                "อุปกรณ์การศึกษา/กีฬา": todayData[6],
+                "ค่าสังสรรค์"  : todayData[7],
+                "อุปกรณ์ไฟฟ้า" : todayData[8],
+                "ลงทุน (เงินส่วนตัว)": todayData[9],
+                "อื่นๆ"       : todayData[10],
+                "ยอดรวม": sum([i for i in todayData]),
+                "คงเหลือ": pay.col_values(todayDateGet + 1)[22],
                 }
 
     except TypeError:
