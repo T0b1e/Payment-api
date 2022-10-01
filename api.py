@@ -1,9 +1,10 @@
 from main import *
 from flask import Flask, request
+from datetime import datetime
 
 app = Flask(__name__)
 
-day = int(datetime.datetime.now().strftime("%d")) + 1
+day = int(datetime.now().strftime("%d")) # Becasue in first column we are already start with title TODAY
 pay = dataNow()
 
 @app.route("/")
@@ -13,35 +14,41 @@ def index():
 
 @app.route("/today")
 def today():
-    todayRaw = pay.col_values(day)[10:21] # todayRaw --> output
-    today = []
-    for x in todayRaw:
-        if x == "" or x == None:
-            x = 0
-            today.append(0)
-        else:
-            today.append(round(int(x.replace(',', ''), 2)))
+    try:
+        todayRaw = pay.col_values(day + 1)[10:21] # todayRaw --> output
+        today = []
+        for x in todayRaw:
+            if x == "" or x == None:
+                x = 0
+                today.append(0)
+            else:
+                today.append(round(int(str(x).replace(',', '')), 2))
+        
+        return {
+                "วัน"        : f'{day}',
+                "ข้าวเช้า"    : today[0],
+                "ข้าวเที่ยง"   : today[1],
+                "ข้าวเย็น"    : today[2],
+                "ขนม/น้ำดื่ม" : today[3],
+                "เซเว่น"     : today[4],
+                "ค่าเดินทาง"  : today[5],
+                "อุปกรณ์การศึกษา/กีฬา": today[6],
+                "ค่าสังสรรค์"  : today[7],
+                "อุปกรณ์ไฟฟ้า" : today[8],
+                "ลงทุน (เงินส่วนตัว)": today[9],
+                "อื่นๆ"       : today[10],
+                "ยอดรวม": sum([i for i in today]),
+                "คงเหลือ": pay.col_values(day)[22],
+                }
 
-    return {
-            "วัน"        : f'{day}',
-            "ข้าวเช้า"    : today[0],
-            "ข้าวเที่ยง"   : today[1],
-            "ข้าวเย็น"    : today[2],
-            "ขนม/น้ำดื่ม" : today[3],
-            "เซเว่น"     : today[4],
-            "ค่าเดินทาง"  : today[5],
-            "อุปกรณ์การศึกษา/กีฬา": today[6],
-            "ค่าสังสรรค์"  : today[7],
-            "อุปกรณ์ไฟฟ้า" : today[8],
-            "ลงทุน (เงินส่วนตัว)": today[9],
-            "อื่นๆ"       : today[10],
-            "ยอดรวม": sum([i for i in today]),
-            "คงเหลือ": pay.col_values(day)[22],
-            }
+    except TypeError:
+
+        return {'message': 'ต้นเดือน'}, 401
+
 
 @app.route("/yesterday")
 def yesterday():
-    todayRaw = pay.col_values(day - 1)[10:21] # todayRaw --> output
+    todayRaw = pay.col_values(day)[10:21] # todayRaw --> output
     today = []
     try:
         for x in todayRaw:
@@ -63,7 +70,7 @@ def yesterday():
                 "ลงทุน (เงินส่วนตัว)": today[9],
                 "อื่นๆ"       : today[10],
                 "ยอดรวม": sum([i for i in today]),
-                "คงเหลือ": pay.col_values(day - 1)[22],
+                "คงเหลือ":  0 if pay.col_values(day)[4] == "" else pay.col_values(day)[4],
                 }
 
     except TypeError:
@@ -73,7 +80,7 @@ def yesterday():
 def everyday():
     e = everydayValue()
     return {
-            "วัน"        : f'1 --> {day - 1}',
+            "วัน"        : f'1 --> {day}',
             "ข้าวเช้า"    : e[0],
             "ข้าวเที่ยง"   : e[1],
             "ข้าวเย็น"    : e[2],
@@ -171,9 +178,9 @@ def upload():
             return {'Attemp': f'0 --> {money}',
                     'remain': pay.cell(23, day).value}, 200
 
-        elif money == 0 and record != None:
+        elif money == 0:
             # pay.update_cell(types, day, money) # update money into nontype cell
-            return {'Attemp': f'{record} Noting change',
+            return {'Attemp': 'Noting new' if record == None else 'Noting change',
                     'remain': pay.cell(23, day).value}, 200
 
         else:
@@ -193,9 +200,12 @@ def edit():
     dateSpecific = int(request.args.get('dateSpecific')) + 1
     types = request.args.get('types')
     money = int(request.args.get('money'))
-    day = int(datetime.datetime.now().strftime("%d")) + 1
     
     dic = {
+    "เงินเดือน"   :["salary", 5],
+    "รายได้"   :["income", 6],
+    "เพื่อนคืนเงิน"   :["friend", 7],
+    "อื่นๆ"   :["salary_etc.", 8],
     "ข้าวเช้า"    :["breakfast", 11],
     "ข้าวเที่ยง"   :["lunch", 12],
     "ข้าวเย็น"    :["dinner", 13],
@@ -212,13 +222,13 @@ def edit():
 
     historyData('edit', types, money)
 
+    for x, y in dic.items():
+         if types == x:
+            types = y[1]
+
     if dateType == 'today':
 
-        for x, y in dic.items():
-            if types == x:
-                types = y[1]
-
-        record = pay.cell(types, day).value
+        record = pay.cell(types, day + 1).value
 
         if record ==  None:
 
@@ -226,16 +236,11 @@ def edit():
 
         else:
 
-            pay.update_cell(types, day, money) 
+            pay.update_cell(types, day + 1, money) 
 
     else: # Custom
 
         if dateSpecific != 0:
-
-            for x, y in dic.items():
-                if types == x:
-                    types = y[1]
-
             record = pay.cell(types, dateSpecific).value
 
             if record == None:
@@ -252,12 +257,11 @@ def edit():
     record = int(record)
 
     diff = money - record if money > record else record - money
-    if diff == 0 : diff = 'ไม่มีการเปลี่ยนแปลง'
 
     return {
             "วัน"        : f'{day}',
-            "ผลลัพธ์" : f'เปลี่ยนค่าจาก {record} --> {money}',
-            "ผลต่าง": f' ผลต่าง {diff}',
+            "ผลลัพธ์" : f'เปลี่ยนค่าจาก {record} --> {money}' if record != None and money != None and money != 0 else 'ไม่มีการเปลี่ยนแปลง',
+            "ผลต่าง": f' ผลต่าง {diff}' if diff != 0 else 'ไม่มีการเปลี่ยนแปลง',
             }
 
 
