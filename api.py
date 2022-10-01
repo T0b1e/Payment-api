@@ -16,9 +16,9 @@ def today():
     todayRaw = pay.col_values(day)[10:21] # todayRaw --> output
     today = []
     for x in todayRaw:
-        if x == "" or None:
+        if x == "" or x == None:
             x = 0
-            today.append(round(int(x), 2))
+            today.append(0)
         else:
             today.append(round(int(x), 2))
 
