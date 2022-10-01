@@ -20,7 +20,7 @@ def today():
             x = 0
             today.append(0)
         else:
-            today.append(round(int(x), 2))
+            today.append(round(int(x.replace(',', ''), 2)))
 
     return {
             "วัน"        : f'{day}',
@@ -46,9 +46,9 @@ def yesterday():
     for x in todayRaw:
         if x == "" or None:
             x = 0
-            today.append(round(int(x), 2))
+            today.append(round(int(x.replace(',', '')), 2))
         else:
-            today.append(round(int(x), 2))
+            today.append(round(int(x.replace(',', '')), 2))
     return {
             "วัน"        : f'{day - 1}',
             "ข้าวเช้า"    : today[0],
