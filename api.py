@@ -2,7 +2,7 @@ from main import *
 from flask import Flask, request
 from datetime import datetime
 
-app = Flask(__name__)
+app = Flask(__name__)   
 
 day = int(datetime.now().strftime("%d")) # Becasue in first column we are already start with title TODAY
 pay = dataNow()
@@ -323,7 +323,5 @@ def edit():
             "ผลลัพธ์" : f'เปลี่ยนค่าจาก {record} --> {money}' if record != None and money != None and money != 0 and record != money else 'ไม่มีการเปลี่ยนแปลง',
             "ผลต่าง": f' ผลต่าง {diff}' if diff != 0 else 'ไม่มีการเปลี่ยนแปลง',
             }
-
-
 
 # flask --app api run
