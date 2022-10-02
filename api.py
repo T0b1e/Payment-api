@@ -324,4 +324,8 @@ def edit():
             "ผลต่าง": f' ผลต่าง {diff}' if diff != 0 else 'ไม่มีการเปลี่ยนแปลง',
             }
 
-# flask --app api run
+@app.errorhandler(404)
+def page_not_found():
+    return 'This page does not exist', 404
+
+# flask --app payment run

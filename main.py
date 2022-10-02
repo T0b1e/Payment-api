@@ -2,8 +2,6 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import datetime 
 
-
-
 def getValue():
 
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/spreadsheets",
@@ -33,13 +31,14 @@ dic = {
 def dataNow():
     
     sheet = getValue()
-    pay = sheet.worksheet(str(datetime.datetime.now().strftime("%B")))
+    pay = sheet.worksheet(str(datetime.datetime.now().strftime("%B"))) # Current month
 
     return pay
 
 getValue()
 
 def everydayValue():
+
     data = dataNow()
 
     rawData = []
@@ -57,8 +56,6 @@ def everydayValue():
 
 
 def historyData(method, types, money, times): # upload?types=ข้าวเช้า&money=20
-
-    import time
 
     day = int(datetime.datetime.now().strftime("%d")) + 1
 
