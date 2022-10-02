@@ -170,7 +170,9 @@ def upload():
 
     try:
 
-        todayDateGet = int(request.args.get('today')[:1])
+        dateAndTime = request.args.get('today').split(' ') # 2 Oct BE 2565 19:22
+        todayDateGet = int(dateAndTime[0]) # Should be not error as not any device
+        timeGet = dateAndTime[4] # It can be error if device input type isn't from iphone
         types = request.args.get('types')
         money = int(request.args.get('money'))
 
@@ -179,6 +181,7 @@ def upload():
         types = 'อื่นๆ'
         money = 0
         todayDateGet if todayDateGet  != day else todayDateGet 
+        timeGet = '00:00'
 
     todayDateGet = int(todayDateGet)
 
@@ -201,7 +204,7 @@ def upload():
     "อื่นๆ"       :["etc.", 21]
     }
 
-    historyData('upload', types, money)
+    historyData('upload', types, money, timeGet)
 
     for x, y in dic.items():
         if types == x:
@@ -236,8 +239,10 @@ def edit():
 
     try:
 
-        todayDateGet = int(request.args.get('today')[:1]) # it will get ignore if you using dateType as not custom
-
+        dateAndTime = request.args.get('today').split(' ') # it will get ignore if you using dateType as not custom
+        todayDateGet = int(dateAndTime[0])
+        timeGet = dateAndTime[4] # It can be error if device input type isn't from iphone
+ 
         dateType = request.args.get('dateType')
         dateSpecific = int(request.args.get('dateSpecific')) + 1
         types = request.args.get('types')
@@ -251,6 +256,8 @@ def edit():
         dateSpecific = 1
         types = 'อื่นๆ'
         money = 0
+
+        timeGet = '00:00'
 
     todayDateGet = int(todayDateGet)
 
@@ -273,7 +280,7 @@ def edit():
 
     }
 
-    historyData('edit', types, money)
+    historyData('edit', types, money, timeGet)
 
     for x, y in dic.items():
          if types == x:

@@ -56,7 +56,7 @@ def everydayValue():
     return sumList
 
 
-def historyData(method, types, money): # upload?types=ข้าวเช้า&money=20
+def historyData(method, types, money, times): # upload?types=ข้าวเช้า&money=20
 
     import time
 
@@ -73,7 +73,7 @@ def historyData(method, types, money): # upload?types=ข้าวเช้า&m
         else: # ไม่มีข้อมูลด้านใน
             break
 
-    sentence = f'[{time.strftime("%H:%M", time.localtime())}, {method}, "{types}", {money}]'
+    sentence = f'[{times}, {method}, "{types}", {money}]'
     pays.update_cell(count, day, sentence)
         
 
