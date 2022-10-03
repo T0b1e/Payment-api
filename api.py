@@ -328,4 +328,4 @@ def edit():
 def page_not_found():
     return 'This page does not exist', 404
 
-# flask --app payment run
+# flask --app api run
