@@ -1,7 +1,6 @@
 from main import *
 from flask import Flask, request
-from datetime import datetime, timezone
-import time
+from datetime import datetime
 
 app = Flask(__name__)   
 
@@ -209,7 +208,7 @@ def upload():
 
         dateAndTime = request.args.get('today')# 2 Oct BE 2565 19:22 Sync time
 
-        todayDateGet = dateAndTime[:1]# Should be not error as not any device
+        todayDateGet = int(dateAndTime[:1]) # Should be not error as not any device
         timeGet = dateAndTime[14:] # It can be error if device input type isn't from iphone
 
         types = request.args.get('types')
@@ -217,13 +216,19 @@ def upload():
 
     except ValueError:
 
-        todayDateGet = day
+        todayDateGet = int(day)
         timeGet = str(datetime.now())[11:16]
 
         types = 'อื่นๆ'
         money = 0
+    
+    except TypeError:
 
-    todayDateGet = int(todayDateGet)
+        todayDateGet = int(day)
+        timeGet = str(datetime.now())[11:16]
+
+        types = 'อื่นๆ'
+        money = 0
 
     historyData('upload', types, money, timeGet)
 
@@ -274,7 +279,7 @@ def edit():
 
     except ValueError:
 
-        todayDateGet = day
+        todayDateGet = int(day)
         timeGet = str(datetime.now())[11:16]
 
         dateType = 'custom'
@@ -283,7 +288,16 @@ def edit():
         types = 'อื่นๆ'
         money = 0
 
-    todayDateGet = int(todayDateGet)
+    except TypeError:
+
+        todayDateGet = int(day)
+        timeGet = str(datetime.now())[11:16]
+
+        dateType = 'custom'
+        dateSpecific = 1
+
+        types = 'อื่นๆ'
+        money = 0
 
     historyData('edit', types, money, timeGet)
 
