@@ -1,3 +1,4 @@
+*.json
 keys.json
 /virtualenv
 /__pycache__
