@@ -1,11 +1,34 @@
 from main import *
 from flask import Flask, request
-from datetime import datetime
+from datetime import datetime, timezone
+import time
 
 app = Flask(__name__)   
 
+# -*- coding: utf-8 -*-
+
 day = int(datetime.now().strftime("%d")) # Becasue in first column we are already start with title TODAY
 pay = dataNow()
+
+### Specify Column
+
+DIC = {
+"เงินเดือน"   :["salary", 5],
+"รายได้"   :["income", 6],
+"เพื่อนคืนเงิน"   :["friend", 7],
+"อื่นๆ"   :["salary_etc.", 8],
+"ข้าวเช้า"    :["breakfast", 11],
+"ข้าวเที่ยง"   :["lunch", 12],
+"ข้าวเย็น"    :["dinner", 13],
+"ขนม/น้ำดื่ม" :["snack", 14],
+"เซเว่น"     :["seven-eleven", 15],
+"ค่าเดินทาง"  :["travel", 16],
+"อุปกรณ์การศึกษา/กีฬา":["education", 17],
+"ค่าสังสรรค์"  :["entertainment", 18],
+"อุปกรณ์ไฟฟ้า" :["tools", 19],
+"ลงทุน (เงินส่วนตัว)":["invest", 20],
+"อื่นๆ"       :["etc.", 21]
+}
 
 @app.route("/")
 def index():
@@ -17,11 +40,17 @@ def today():
 
     try:
 
-        todayDateGet = int(request.args.get('today')[:1])
+        todayDateGet = int(request.args.get('today')[:1]) # 8 ต.ค. 2565 23:51
 
     except ValueError:
 
-        todayDateGet if todayDateGet  != day else todayDateGet 
+        todayDateGet = day
+
+    except TypeError:
+
+        todayDateGet = day
+
+        # todayDateGet if todayDateGet  != day else todayDateGet 
 
     todayDateGet = int(todayDateGet)
 
@@ -67,7 +96,11 @@ def yesterday():
 
     except ValueError:
 
-        todayDateGet if todayDateGet  != day else todayDateGet 
+        todayDateGet = day
+
+    except TypeError:
+
+        todayDateGet = day
 
     todayDateGet = int(todayDateGet)
     
@@ -109,7 +142,11 @@ def everyday():
 
     except ValueError:
 
-        todayDateGet if todayDateGet  != day else todayDateGet 
+        todayDateGet = day
+
+    except TypeError:
+
+        todayDateGet = day
 
     todayDateGet = int(todayDateGet)
 
@@ -134,7 +171,7 @@ def everyday():
 @app.route("/custom", methods = ['GET']) # custom?today=0
 def custom():
 
-    todayDateGet = int(request.args.get('today')) # Custom date Specific date
+    todayDateGet = int(request.args.get('today'))[:1] # Custom date Specific date
 
     data = pay.col_values(todayDateGet + 1)
     customRaw = data[10:21] # from ข้าวเช้า untile ยอดรวม
@@ -170,43 +207,27 @@ def upload():
 
     try:
 
-        dateAndTime = request.args.get('today').split(' ') # 2 Oct BE 2565 19:22
-        todayDateGet = int(dateAndTime[0]) # Should be not error as not any device
-        timeGet = dateAndTime[4] # It can be error if device input type isn't from iphone
+        dateAndTime = request.args.get('today')# 2 Oct BE 2565 19:22 Sync time
+
+        todayDateGet = dateAndTime[:1]# Should be not error as not any device
+        timeGet = dateAndTime[14:] # It can be error if device input type isn't from iphone
+
         types = request.args.get('types')
         money = int(request.args.get('money'))
 
     except ValueError:
 
+        todayDateGet = day
+        timeGet = str(datetime.now())[11:16]
+
         types = 'อื่นๆ'
         money = 0
-        todayDateGet if todayDateGet  != day else todayDateGet 
-        timeGet = '00:00'
 
     todayDateGet = int(todayDateGet)
 
-
-    dic = {
-    "เงินเดือน"   :["salary", 5],
-    "รายได้"   :["income", 6],
-    "เพื่อนคืนเงิน"   :["friend", 7],
-    "อื่นๆ"   :["salary_etc.", 8],
-    "ข้าวเช้า"    :["breakfast", 11],
-    "ข้าวเที่ยง"   :["lunch", 12],
-    "ข้าวเย็น"    :["dinner", 13],
-    "ขนม/น้ำดื่ม" :["snack", 14],
-    "เซเว่น"     :["seven-eleven", 15],
-    "ค่าเดินทาง"  :["travel", 16],
-    "อุปกรณ์การศึกษา/กีฬา":["education", 17],
-    "ค่าสังสรรค์"  :["entertainment", 18],
-    "อุปกรณ์ไฟฟ้า" :["tools", 19],
-    "ลงทุน (เงินส่วนตัว)":["invest", 20],
-    "อื่นๆ"       :["etc.", 21]
-    }
-
     historyData('upload', types, money, timeGet)
 
-    for x, y in dic.items():
+    for x, y in DIC.items():
         if types == x:
             types = y[1]
 
@@ -239,50 +260,34 @@ def edit():
 
     try:
 
-        dateAndTime = request.args.get('today').split(' ') # it will get ignore if you using dateType as not custom
-        todayDateGet = int(dateAndTime[0])
-        timeGet = dateAndTime[4] # It can be error if device input type isn't from iphone
- 
-        dateType = request.args.get('dateType')
-        dateSpecific = int(request.args.get('dateSpecific')) + 1
+        dateAndTime = request.args.get('today') # it will get ignore if you using dateType as not custom
+        todayDateGet = int(dateAndTime[:1])
+        timeGet = dateAndTime[14:] # It can be error if device input type isn't from iphone
+        
+        ### If you picking CUSTOM
+        dateType = request.args.get('dateType') # custom
+        dateSpecific = int(request.args.get('dateSpecific')) + 1 # Specify date
+
+        ### Information
         types = request.args.get('types')
         money = int(request.args.get('money'))
 
     except ValueError:
 
-        todayDateGet if todayDateGet  != day else todayDateGet 
+        todayDateGet = day
+        timeGet = str(datetime.now())[11:16]
 
         dateType = 'custom'
         dateSpecific = 1
+
         types = 'อื่นๆ'
         money = 0
 
-        timeGet = '00:00'
-
     todayDateGet = int(todayDateGet)
-
-    dic = {
-    "เงินเดือน"   :["salary", 5],
-    "รายได้"   :["income", 6],
-    "เพื่อนคืนเงิน"   :["friend", 7],
-    "อื่นๆ"   :["salary_etc.", 8],
-    "ข้าวเช้า"    :["breakfast", 11],
-    "ข้าวเที่ยง"   :["lunch", 12],
-    "ข้าวเย็น"    :["dinner", 13],
-    "ขนม/น้ำดื่ม" :["snack", 14],
-    "เซเว่น"     :["seven-eleven", 15],
-    "ค่าเดินทาง"  :["travel", 16],
-    "อุปกรณ์การศึกษา/กีฬา":["education", 17],
-    "ค่าสังสรรค์"  :["entertainment", 18],
-    "อุปกรณ์ไฟฟ้า" :["tools", 19],
-    "ลงทุน (เงินส่วนตัว)":["invest", 20],
-    "อื่นๆ"       :["etc.", 21]
-
-    }
 
     historyData('edit', types, money, timeGet)
 
-    for x, y in dic.items():
+    for x, y in DIC.items():
          if types == x:
             types = y[1]
 
