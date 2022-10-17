@@ -208,7 +208,7 @@ def upload():
 
         dateAndTime = request.args.get('today')# 2 Oct BE 2565 19:22 Sync time
 
-        todayDateGet = int(dateAndTime[:1]) # Should be not error as not any device
+        todayDateGet = int(dateAndTime[:2]) # Should be not error as not any device
         timeGet = dateAndTime[14:] # It can be error if device input type isn't from iphone
 
         types = request.args.get('types')
@@ -237,6 +237,8 @@ def upload():
             types = y[1]
 
     record = pay.cell(types, todayDateGet + 1).value
+
+    # print(dateAndTime, todayDateGet, timeGet, types, money)
 
     try:
 
