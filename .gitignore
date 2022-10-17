@@ -1,4 +1,5 @@
 *.json
 keys.json
+Keys.json
 /virtualenv
 /__pycache__
