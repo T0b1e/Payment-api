@@ -39,7 +39,7 @@ def today():
 
     try:
 
-        todayDateGet = int(request.args.get('today')[:1]) # 8 ต.ค. 2565 23:51
+        todayDateGet = int(request.args.get('today')[:2]) # 8 ต.ค. 2565 23:51
 
     except ValueError:
 
@@ -91,7 +91,7 @@ def yesterday():
 
     try:
 
-        todayDateGet = int(request.args.get('today')[:1])
+        todayDateGet = int(request.args.get('today')[:2])
 
     except ValueError:
 
@@ -137,7 +137,7 @@ def everyday():
 
     try:
 
-        todayDateGet = int(request.args.get('today')[:1])
+        todayDateGet = int(request.args.get('today')[:2])
 
     except ValueError:
 
@@ -170,7 +170,7 @@ def everyday():
 @app.route("/custom", methods = ['GET']) # custom?today=0
 def custom():
 
-    todayDateGet = int(request.args.get('today'))[:1] # Custom date Specific date
+    todayDateGet = int(request.args.get('today'))[:2] # Custom date Specific date
 
     data = pay.col_values(todayDateGet + 1)
     customRaw = data[10:21] # from ข้าวเช้า untile ยอดรวม
@@ -268,7 +268,7 @@ def edit():
     try:
 
         dateAndTime = request.args.get('today') # it will get ignore if you using dateType as not custom
-        todayDateGet = int(dateAndTime[:1])
+        todayDateGet = int(dateAndTime[:2])
         timeGet = dateAndTime[14:] # It can be error if device input type isn't from iphone
         
         ### If you picking CUSTOM
