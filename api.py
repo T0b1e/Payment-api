@@ -9,6 +9,9 @@ app = Flask(__name__)
 day = int(datetime.now().strftime("%d")) # Becasue in first column we are already start with title TODAY
 pay = dataNow()
 
+# sheet = getValue()
+# sumsSheet = sheet.worksheet(f'SumDaily{str(datetime.datetime.now().strftime("%B"))[:3]}')
+
 ### Specify Column
 
 DIC = {
@@ -253,9 +256,15 @@ def upload():
                     'Remain': pay.cell(23, todayDateGet + 1).value}, 200
 
         else:
+            remain = round(float(pay.cell(23, todayDateGet + 1).value) - (float(record) + money), 2)
+
             pay.update_cell(types, todayDateGet + 1, int(record) + money)
+
+            # sumsSheet.update_cell(todayDateGet + 1, 2, pay.cell(todayDateGet + 1, 2).value)
+            # sumsSheet.update_cell(todayDateGet + 1, 3, remain)
+
             return {'Result': f'{record} --> {int(record) + money}',
-                    'Remain': float(pay.cell(23, todayDateGet + 1).value) - (float(record) + money)}, 200
+                    'Remain':remain }, 200
 
     except TypeError:
 

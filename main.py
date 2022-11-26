@@ -35,7 +35,7 @@ def dataNow():
 
     return pay
 
-getValue()
+# getValue()
 
 def everydayValue():
 
@@ -75,3 +75,20 @@ def historyData(method, types, money, times): # upload?types=ข้าวเช�
         
 
     return None
+
+def appendSum():
+
+    sheet = getValue()
+    getData = dataNow() # Current month value
+    updateSheet = sheet.worksheet(f'SumDaily{str(datetime.datetime.now().strftime("%B"))[:3]}') # Update Sheet
+
+    sums = getData.row_values(22)[1:]
+    remain = getData.row_values(23)[1:]
+    count = 0
+
+    for x in range(2, 33):
+        updateSheet.update_cell(x, 2, 0 if sums[count] == None else sums[count])
+        updateSheet.update_cell(x, 3, 0 if remain[count] == None else remain[count])
+        count += 1
+    
+# appendSum()
