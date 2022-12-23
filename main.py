@@ -1,5 +1,4 @@
 from fastapi import FastAPI
-import sqlite3
 
 from src.crud import PaymentMethod
 
@@ -23,4 +22,3 @@ async def upload(date: int, types: str, money: float):
     return {"date": date,
             "value": PaymentMethod.upload(date=date, types=types, money=money)}
 
-## Check
