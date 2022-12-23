@@ -1,5 +1,13 @@
 *.json
+*.xlsx
+
+/.idea
 keys.json
 Keys.json
-/virtualenv
+/env
+
 /__pycache__
+
+# src db
+/src
+/src/excel

@@ -1,6 +1,6 @@
 import pandas as pd
 
-data = pd.read_excel(io="src/excel/Payments (30_11_2022).xlsx", sheet_name='November', nrows=24).fillna(value=0)
+data = pd.read_excel(io="src/excel/Payments (22_12_2022).xlsx", sheet_name='December', nrows=24).fillna(value=0)
 
 def rawData():
     # print(data)
@@ -26,6 +26,16 @@ def rawData():
            transpost[i].append(lists[j][i])
 
     return transpost
+
+def defaults():
+    lists = []
+    for x in range(0, 31):
+        lists.append([])
+        lists[x].append(x + 1)
+        for y in range(0, 16):
+            lists[x].append(0.0)
+
+    return lists
 
 # rawData()
 # print(rawData())
