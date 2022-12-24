@@ -1,12 +1,12 @@
 from fastapi import FastAPI
-
+from fastapi.responses import RedirectResponse
 from src.crud import PaymentMethod
 
 app = FastAPI()
 
 @app.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return RedirectResponse("/docs")
 
 @app.get("/check")
 async def checks():
