@@ -9,5 +9,6 @@ Keys.json
 /__pycache__
 
 # src db
-/src
+/src/__pycache__
+/src/Database
 /src/excel
