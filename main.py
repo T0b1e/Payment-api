@@ -19,20 +19,20 @@ async def check(date : str):
     return {"date": date,
             "value": PaymentMethod().checkSingle(date=date)}
 
-@app.post("/expense/{date}/{types}/{money}")
-async def expense(date: str, types: str, money: float, description: Union[str, None] = None):
-    return {"date": date,
-            "value": PaymentMethod().expense(date=date, time='00:00', amount=money, types=types, description=description)}
+@app.post("/expense/{types}/{money}")
+async def expense(types: str, money: float, description: Union[str, None] = None):
+    return {"date": "2022-12-27", #TODO
+            "value": PaymentMethod().expense(amount=money, types=types, description=description)}
 
-@app.post("/income/{date}/{types}/{money}")
-async def income(date: str, types: str, money: float, description: Union[str, None] = None):
-    return {"date": date,
-            "value": PaymentMethod().expense(date=date, time='00:00', amount=money, types=types, description=description)}
+@app.post("/income/{types}/{money}")
+async def income(types: str, money: float, description: Union[str, None] = None):
+    return {"date": "2022-12-27", #TODO
+            "value": PaymentMethod().income(amount=money, types=types, description=description)}
 
-@app.post("/transactions/{date}/{types}/{money}")
-async def transactions(date: str, types: str, money: float, description: Union[str, None] = None):
-    return {"date": date,
-            "value": PaymentMethod().expense(date=date, time='00:00', amount=money, types=types, description=description)}
+@app.post("/transactions/{types}/{money}")
+async def transactions(types: str, money: float, description: Union[str, None] = None):
+    return {"date": "2022-12-27", #TODO
+            "value": PaymentMethod().transactions(amount=money, types=types, description=description)}
 
 
 '''
