@@ -12,3 +12,4 @@ Keys.json
 /src/__pycache__
 /src/Database
 /src/excel
+/src/excel/readExcel.py
