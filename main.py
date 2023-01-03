@@ -1,6 +1,10 @@
 from fastapi import FastAPI, Depends, HTTPException
-from src.crud import PaymentMethod
+# from src.crud import PaymentMethod
 from typing import Union
+
+class PaymentMethod:
+    def __init__(self) -> None:
+        pass
 
 # Third party
 from datetime import datetime
