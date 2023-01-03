@@ -1,37 +1,98 @@
-from sqlalchemy.orm import Session
-from .models import * 
+import sqlite3
 
+class PaymentMethod:
 
-"""def checks(db: Session):
-    return db.query(models.Transcations).filter(models.User.id == user_id).first()"""
+	def __init__(self):
 
+		self.conn = sqlite3.connect(
+		'src/excel/January.db'
+		)
 
-def check(db: Session, date: int): # Single check
-    return db.query(Transcations).where(Transcations.date == date)
+		self.cursor = self.conn.cursor()
 
+	def checkSingle(self, date): #TODO sql injectsion string
 
-"""def get_users(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.User).offset(skip).limit(limit).all()
+		self.cursor.execute(f"""
+		SELECT category, SUM(amount) FROM transactions
+		WHERE date = "{date}" 
+		GROUP BY category;
+    """)
 
+		self.conn.commit()
 
-def create_user(db: Session, user: schemas.UserCreate):
-    fake_hashed_password = user.password + "notreallyhashed"
-    db_user = models.User(email=user.email, hashed_password=fake_hashed_password)
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    return db_user
+		return self.cursor.fetchone()
 
+	def checkAll(self):
 
-def get_items(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Item).offset(skip).limit(limit).all()
+		self.cursor.execute(f"""
+		SELECT category, SUM(amount) FROM transactions
+		GROUP BY category;
+    """)
+		self.conn.commit()
+		
 
+		return self.cursor.fetchall()
 
-def create_user_item(db: Session, item: schemas.ItemCreate, user_id: int):
-    db_item = models.Item(**item.dict(), owner_id=user_id)
-    db.add(db_item)
-    db.commit()
-    db.refresh(db_item)
-    return db_item"""
+	def expense(self, amount, types, description):
 
-# check(Session, 1)
+		self.cursor.executescript(f"""
+			UPDATE narongkorn
+				SET cash = cash - {amount};
+				
+			INSERT INTO record (amount, category, deposit, cash, description)
+				VALUES ({amount}, "{types}", (SELECT deposit FROM narongkorn), (SELECT cash FROM narongkorn), "{description}");
+				
+			INSERT INTO transactions (amount, category, description)
+				VALUES ({amount}, "{types}", "{description}");
+    	""")
+		
+		self.conn.commit()
+
+		return {
+			"Amount" : {amount},
+			"Category" : {types},
+			"Description" : {description}
+		}
+
+	def income(self, amount, types, description):
+
+		self.cursor.executescript(f"""
+			UPDATE narongkorn
+				SET deposit = deposit + {amount};
+				
+			INSERT INTO record (amount, category, deposit, cash, description)
+				VALUES ({amount}, "{types}", (SELECT deposit FROM narongkorn), (SELECT cash FROM narongkorn), "{description}");
+				
+			INSERT INTO transactions (amount, category, description)
+				VALUES ({amount}, "{types}", "{description}");
+    	""")
+
+		self.conn.commit()
+		
+		return {
+			"Amount" : {amount},
+			"Category" : {types},
+			"Description" : {description}
+		}
+
+	def transactions(self, amount, types, description):
+
+		self.cursor.executescript(f"""
+			UPDATE narongkorn
+				SET deposit = deposit - {amount},
+					cash = cash + {amount};
+				
+			INSERT INTO record (amount, category, deposit, cash, description)
+				VALUES ({amount}, "{types}", (SELECT deposit FROM narongkorn), (SELECT cash FROM narongkorn), "{description}");
+				
+			INSERT INTO transactions (amount, category, description)
+				VALUES ({amount}, "{types}", "{description}");
+    	""")
+
+		self.conn.commit()
+		
+		return {
+			"Amount" : {amount},
+			"Category" : {types},
+			"Description" : {description}
+		}
