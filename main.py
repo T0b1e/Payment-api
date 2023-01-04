@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException
-# from src.crud import PaymentMethod
+from src.crud import *
 from typing import Union
+from src.database import SessionLocal, engine
 
 class PaymentMethod:
     def __init__(self) -> None:
@@ -15,18 +16,26 @@ app = FastAPI()
 timeNow = datetime.now()
 presentDate = timeNow.strftime("%Y-%m-%d")
 
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
 @app.get("/")
 async def root():
     return {"message": "It's Working fine"}
 
 @app.get("/check")
-async def checks():
-    return {"value": PaymentMethod().checkAll()}
+async def checks(db: Session = Depends(get_db)):
+    return {"date": f'2023-01-01 --> {presentDate}',
+            "value": checkAll(db)}
 
 @app.get("/check/{date}")
-async def check(date : str):
+async def check(date : str, db: Session = Depends(get_db)):
     return {"date": date,
-            "value": PaymentMethod().checkSingle(date=date)}
+            "value": checkSingle(db, date=date)}
 
 @app.post("/expense/{types}/{money}")
 async def expense(types: str, money: float, description: Union[str, None] = None):
