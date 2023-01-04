@@ -1,98 +1,20 @@
-import sqlite3
+from sqlalchemy.orm import Session
+from sqlalchemy.sql.functions import sum as sums
+import src.models as models
 
-class PaymentMethod:
+def checkAll(db: Session): #Single check
+    return db.query(models.Transcations).all()
 
-	def __init__(self):
+def checkSingle(db: Session, date: int): #Single check
+    # data = db.query(models.Transcations.category, sum(models.Transcations.amount)).with_entities(models.Transcations.amount).filter(models.Transcations.date == date).group_by(models.Transcations.category).all()
+    expense = db.query(models.Transcations.category, sums(models.Transcations.amount)).filter(models.Transcations.date == date)  .group_by(models.Transcations.category).all()
+    strorage = db.query(models.Main.deposit, models.Main.cash).first()
+    withoutDepo = {category: amount for category, amount in expense}
+    withoutDepo.update(
+                        {   "deposit": strorage[0][0],
+                            "cash": strorage[0][1]})  
+    return withoutDepo
 
-		self.conn = sqlite3.connect(
-		'src/excel/January.db'
-		)
 
-		self.cursor = self.conn.cursor()
 
-	def checkSingle(self, date): #TODO sql injectsion string
-
-		self.cursor.execute(f"""
-		SELECT category, SUM(amount) FROM transactions
-		WHERE date = "{date}" 
-		GROUP BY category;
-    """)
-
-		self.conn.commit()
-
-		return self.cursor.fetchone()
-
-	def checkAll(self):
-
-		self.cursor.execute(f"""
-		SELECT category, SUM(amount) FROM transactions
-		GROUP BY category;
-    """)
-		self.conn.commit()
-		
-
-		return self.cursor.fetchall()
-
-	def expense(self, amount, types, description):
-
-		self.cursor.executescript(f"""
-			UPDATE narongkorn
-				SET cash = cash - {amount};
-				
-			INSERT INTO record (amount, category, deposit, cash, description)
-				VALUES ({amount}, "{types}", (SELECT deposit FROM narongkorn), (SELECT cash FROM narongkorn), "{description}");
-				
-			INSERT INTO transactions (amount, category, description)
-				VALUES ({amount}, "{types}", "{description}");
-    	""")
-		
-		self.conn.commit()
-
-		return {
-			"Amount" : {amount},
-			"Category" : {types},
-			"Description" : {description}
-		}
-
-	def income(self, amount, types, description):
-
-		self.cursor.executescript(f"""
-			UPDATE narongkorn
-				SET deposit = deposit + {amount};
-				
-			INSERT INTO record (amount, category, deposit, cash, description)
-				VALUES ({amount}, "{types}", (SELECT deposit FROM narongkorn), (SELECT cash FROM narongkorn), "{description}");
-				
-			INSERT INTO transactions (amount, category, description)
-				VALUES ({amount}, "{types}", "{description}");
-    	""")
-
-		self.conn.commit()
-		
-		return {
-			"Amount" : {amount},
-			"Category" : {types},
-			"Description" : {description}
-		}
-
-	def transactions(self, amount, types, description):
-
-		self.cursor.executescript(f"""
-			UPDATE narongkorn
-				SET deposit = deposit - {amount},
-					cash = cash + {amount};
-				
-			INSERT INTO record (amount, category, deposit, cash, description)
-				VALUES ({amount}, "{types}", (SELECT deposit FROM narongkorn), (SELECT cash FROM narongkorn), "{description}");
-				
-			INSERT INTO transactions (amount, category, description)
-				VALUES ({amount}, "{types}", "{description}");
-    	""")
-
-		self.conn.commit()
-		
-		return {
-			"Amount" : {amount},
-			"Category" : {types},
-			"Description" : {description}
-		}
+# PaymentMethod().checkSingle()
