@@ -1,4 +1,8 @@
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.security import OAuth2PasswordBearer
+import uvicorn
+
+from sqlalchemy.orm import Session
 from src.crud import checkAll, checkSingle, addExpense, addIncome, toBangkok, toSCB
 from src.database import SessionLocal, engine
 import src.models as models
@@ -6,7 +10,12 @@ import src.models as models
 # Third party
 from datetime import datetime
 from typing import Union
-from sqlalchemy.orm import Session
+
+import dotenv
+import os
+
+dotenv.load_dotenv('./src/keys.env')
+api_key = os.getenv('API_KEY')
 
 app = FastAPI()
 
@@ -15,6 +24,8 @@ timeNow = datetime.now()
 presentDate = timeNow.strftime("%Y-%m-%d")
 
 models.Base.metadata.create_all(bind=engine)
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token") 
 
 def get_db():
     db = SessionLocal()
@@ -96,3 +107,7 @@ async def transactionsToSCB(
 
     return {"date": presentDate, 
             "value": value}
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
