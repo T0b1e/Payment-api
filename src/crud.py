@@ -24,11 +24,9 @@ def addExpense(db: Session, amount: float, types: str, description: str): #expen
     db.query(Main).update({Main.cash: Main.cash - amount}) # Update Cash Value
     deposit_cash = db.query(Main.deposit, Main.cash).first()  # Get old cash value
 
-    timeNow = datetime.strptime(datetime.now().strftime('%H:%M:%S'), '%H:%M:%S').time()
-
     data = TranscationsTable(
                 date=date.today(),
-                time=timeNow,
+                time=datetime.now().time(),
                 category=types, 
                 amount=amount , 
                 cash=deposit_cash[1], 
@@ -45,11 +43,9 @@ def addIncome(db: Session, amount: float, types: str, description: str): #expens
     db.query(Main).update({Main.cash: Main.cash + amount}) # Update Cash Value
     deposit_cash = db.query(Main.deposit, Main.cash).first()  # Get old cash value
 
-    timeNow = datetime.strptime(datetime.now().strftime('%H:%M:%S'), '%H:%M:%S').time()
-
     data = TranscationsTable(
                 date=date.today(),
-                time=timeNow,
+                time=datetime.now().time(),
                 category=types, 
                 amount=amount , 
                 cash=deposit_cash[1], 
@@ -68,11 +64,9 @@ def toBangkok(db: Session, amount: float, types: str, description: str): #Transf
 
     deposit_cash = db.query(Main.deposit, Main.cash).first()  # Get old cash value
 
-    timeNow = datetime.strptime(datetime.now().strftime('%H:%M:%S'), '%H:%M:%S').time()
-
     data = TranscationsTable(
                 date=date.today(),
-                time=timeNow,
+                time=datetime.now().time(),
                 category=types, 
                 amount=amount , 
                 cash=deposit_cash[1], 
@@ -91,16 +85,15 @@ def toSCB(db: Session, amount: float, types: str, description: str): #Transfer f
 
     deposit_cash = db.query(Main.deposit, Main.cash).first()  # Get old cash value
 
-    timeNow = datetime.strptime(datetime.now().strftime('%H:%M:%S'), '%H:%M:%S').time()
-
     data = TranscationsTable(
                 date=date.today(),
-                time=timeNow,
+                time=datetime.now().time(),
                 category=types, 
                 amount=amount , 
                 cash=deposit_cash[1], 
                 deposit=deposit_cash[0], 
                 description=description)
+
 
     db.add(data)
     db.commit()
