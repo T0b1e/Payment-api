@@ -1,20 +1,21 @@
 from fastapi import FastAPI, Depends, HTTPException
-from src.crud import *
-from typing import Union
+from src.crud import checkAll, checkSingle, addExpense
 from src.database import SessionLocal, engine
-
-class PaymentMethod:
-    def __init__(self) -> None:
-        pass
+from src.models import TranscationsTable
+import src.models as models
 
 # Third party
 from datetime import datetime
+from typing import Union
+from sqlalchemy.orm import Session
 
 app = FastAPI()
 
 # Header and Encrupt
 timeNow = datetime.now()
 presentDate = timeNow.strftime("%Y-%m-%d")
+
+models.Base.metadata.create_all(bind=engine)
 
 def get_db():
     db = SessionLocal()
@@ -38,15 +39,25 @@ async def check(date : str, db: Session = Depends(get_db)):
             "value": checkSingle(db, date=date)}
 
 @app.post("/expense/{types}/{money}")
-async def expense(types: str, money: float, description: Union[str, None] = None):
-    value = PaymentMethod().expense(amount=money, types=types, description=description)
+async def expense(
+    money: float, 
+    types: str, 
+    description: Union[str, None] = None, 
+    db: Session = Depends(get_db)
+    ):
+
+    value = addExpense(db=db, amount=money, types=types, description=description)
     if not value:
         raise HTTPException(status_code=404, detail="Error :(")
 
     return {"date": presentDate, 
             "value": value}
 
-@app.post("/income/{types}/{money}")
+
+
+
+
+"""@app.post("/income/{types}/{money}")
 async def income(types: str, money: float, description: Union[str, None] = None):
     value = PaymentMethod().income(amount=money, types=types, description=description)
     if not value:
@@ -59,3 +70,4 @@ async def income(types: str, money: float, description: Union[str, None] = None)
 async def transactions(types: str, money: float, description: Union[str, None] = None):
     return {"date": presentDate,
             "value": PaymentMethod().transactions(amount=money, types=types, description=description)}
+"""
