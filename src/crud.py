@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.functions import sum as sums
-from src.models import Main, TranscationsTable
+from src.models import Main, TranscationsTable, IncomeTable, ExpenseTable
 from datetime import datetime, date
 
 
@@ -12,6 +12,7 @@ def checkAll(db: Session):  #All check
                     "cash": deposit_cash[1]})  
     return result
 
+
 def checkSingle(db: Session, date: int):  #Single check
     categories_amounts = db.query(TranscationsTable.category, sums(TranscationsTable.amount)).filter(TranscationsTable.date == date).group_by(TranscationsTable.category).all()
     deposit_cash = db.query(Main.deposit, Main.cash).first()
@@ -20,83 +21,99 @@ def checkSingle(db: Session, date: int):  #Single check
                     "cash": deposit_cash[1]})  
     return result
 
-def addExpense(db: Session, amount: float, types: str, description: str): #expense 
-    db.query(Main).update({Main.cash: Main.cash - amount}) # Update Cash Value
-    deposit_cash = db.query(Main.deposit, Main.cash).first()  # Get old cash value
 
-    data = TranscationsTable(
+
+def addExpense(db: Session, wallet_name: str, amount: float, types: str, description: str): #expense 
+
+    main_info = db.query(Main.name, Main.deposit).filter(Main.name == wallet_name).first()
+
+    if main_info:
+        wallet_name, deposit = main_info
+
+        if deposit >= amount:
+            db.query(Main).filter(Main.name == wallet_name).update({Main.deposit: Main.deposit - amount})
+            db.commit()
+
+            data = ExpenseTable(
                 date=date.today(),
                 time=datetime.now().time(),
-                category=types, 
-                amount=amount , 
-                cash=deposit_cash[1], 
-                deposit=deposit_cash[0], 
-                description=description)
+                category=types,
+                wallet_id = wallet_name,
+                amount=amount,
+                description=description
+            )
 
-    db.add(data)
-    db.commit()
-    db.refresh(data)
+            db.add(data)
+            db.commit()
+            db.refresh(data)
+            
+            return data
+        else:
+            return None
 
-    return data
+    return None
+
+
 
 def addIncome(db: Session, amount: float, types: str, description: str): #expense 
-    db.query(Main).update({Main.cash: Main.cash + amount}) # Update Cash Value
-    deposit_cash = db.query(Main.deposit, Main.cash).first()  # Get old cash value
 
-    data = TranscationsTable(
+    main_info = db.query(Main.name, Main.deposit).filter(Main.name == wallet_name).first()
+
+    if main_info:
+        wallet_name, deposit = main_info
+
+        if deposit >= amount:
+            db.query(Main).filter(Main.name == wallet_name).update({Main.deposit: Main.deposit + amount})
+            db.commit()
+
+            data = IncomeTable(
                 date=date.today(),
                 time=datetime.now().time(),
-                category=types, 
-                amount=amount , 
-                cash=deposit_cash[1], 
-                deposit=deposit_cash[0], 
-                description=description)
+                category=types,
+                wallet_id = wallet_name,
+                amount=amount,
+                description=description
+            )
 
-    db.add(data)
-    db.commit()
-    db.refresh(data)
+            db.add(data)
+            db.commit()
+            db.refresh(data)
+            
+            return data
+        else:
+            return None
 
-    return data
+    return None
 
-def toBangkok(db: Session, amount: float, types: str, description: str): #Transfer from SCB to Bangkok
-    db.query(Main).update({Main.cash: Main.cash - amount})  # Update Cash Value
-    db.query(Main).update({Main.deposit: Main.deposit + amount})  # Update deposit Value
+        
 
-    deposit_cash = db.query(Main.deposit, Main.cash).first()  # Get old cash value
+def transfer_between_wallets(db: Session, origin_wallet_name: str, destination_wallet_name: str, amount: float, description: str):
 
-    data = TranscationsTable(
-                date=date.today(),
-                time=datetime.now().time(),
-                category=types, 
-                amount=amount , 
-                cash=deposit_cash[1], 
-                deposit=deposit_cash[0], 
-                description=description)
+    origin_wallet = db.query(Main.deposit).filter(Main.name == origin_wallet_name).first()
+    destination_wallet = db.query(Main.deposit).filter(Main.name == destination_wallet_name).first()
 
-    db.add(data)
-    db.commit()
-    db.refresh(data)
+    if origin_wallet and destination_wallet:
 
-    return data
+        db.query(Main).filter(Main.name == origin_wallet_name).update({Main.deposit: origin_wallet - amount})
+        db.query(Main).filter(Main.name == destination_wallet_name).update({Main.deposit: destination_wallet + amount})
+        db.commit()
 
-def toSCB(db: Session, amount: float, types: str, description: str): #Transfer from SCB to Bangkok
-    db.query(Main).update({Main.deposit: Main.deposit - amount})  # Update deposit Value
-    db.query(Main).update({Main.cash: Main.cash + amount})  # Update Cash Value
+        data = TranscationsTable(
+            date=date.today(),
+            time=datetime.now().time(),
+            category="Transfer",
+            amount=amount,
+            cash=origin_wallet - amount,
+            deposit=origin_wallet,
+            description=description
+        )
 
-    deposit_cash = db.query(Main.deposit, Main.cash).first()  # Get old cash value
+        db.add(data)
+        db.commit()
+        db.refresh(data)
 
-    data = TranscationsTable(
-                date=date.today(),
-                time=datetime.now().time(),
-                category=types, 
-                amount=amount , 
-                cash=deposit_cash[1], 
-                deposit=deposit_cash[0], 
-                description=description)
+        return data
+    else:
+        return None
 
 
-    db.add(data)
-    db.commit()
-    db.refresh(data)
-
-    return data
