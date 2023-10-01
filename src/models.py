@@ -19,24 +19,28 @@ class Main(Base):
     cash =      Column(Float)
 
 
-class TranscationsTable(Base):
-    __tablename__ = "log"
+class TransactionsTable(Base):
+    __tablename__ = "transactions"
 
     id =        Column(Integer, primary_key=True, index=True)
-    date =      Column(Date)  # aka timestamp
+    date =      Column(Date) 
     time =      Column(Time)  
-    category =  Column(String) # aka type
+    action =    Column(String)
+    types =     Column(String)
     amount =    Column(Float)
-    cash =      Column(Float)
-    deposit =   Column(Float)
-    description = Column(String)
+    origin_wallet_name =  Column(String) # Current Deposit
+    origin_wallet_value = Column(Float)
+    destination_wallet_name =       Column(String)
+    destination_wallet_value =      Column(Float)
+    tag_id =        Column(Integer)
+    description =   Column(String)
 
 
 class IncomeTable(Base):
     __tablename__ = "income"
 
     id =        Column(Integer, primary_key=True, index=True)
-    date =      Column(Date) 
+    date =      Column(Date)  
     time =      Column(Time)  
     category =  Column(String)
     wallet_id = Column(Integer)
@@ -58,6 +62,17 @@ class ExpenseTable(Base):
     description = Column(String)
 
 
+class TransferTable(Base):
+    __tablename__ = "transfer"
+
+    transfer_id =        Column(Integer, primary_key=True, index=True)
+    date =      Column(Date)  
+    time =      Column(Time)  
+    origin_wallet_name =  Column(String)
+    origin_wallet_value = Column(Float)
+    destination_wallet_name =    Column(String)
+    destination_wallet_value =    Column(Float)
+    description = Column(String)
 
 # Note pydantic is only using for focus on data type or string (In this case is not nessesary to using it now but in the future we will talk about that later)
 """
