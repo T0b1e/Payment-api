@@ -19,7 +19,7 @@ import os
 
 from pydantic import Required
 
-dotenv.load_dotenv('./src/keys.env')
+dotenv.load_dotenv('./src/Database/keys.env')
 api_key = os.getenv('API_KEY')
 
 app = FastAPI()
@@ -44,21 +44,15 @@ async def root():
     return {"message": "It's Working fine"}
 
 
-def check_all(db: Session):
-    # Implement your checkAll logic here
-    pass
-
-@app.get("/api/v2/status")
+@app.get("/api/v2/status_db")
 async def check_balance(
     db: Session = Depends(get_db),
-    token: Union[str, None] = Query(default=None, max_length=50)
 ):
-    if token and token in api_key:
-        value = check_all(db)
-        if value:
-            return {"date": f'2023-01-01 --> {presentDate}', "value": value}
-        raise HTTPException(status_code=404, detail="No value available yet")
-    raise HTTPException(status_code=404, detail="Invalid API key")
+    try:
+        db.execute("SELECT 1")
+        return {"message": "Database connection is working"}
+    except Exception as e:
+        return {"message": f"Database connection error: {str(e)}"}
 
 
 @app.get("/api/v2/check/wallet-balance") # Specify wallet
@@ -125,6 +119,7 @@ async def income(
 ):
     if token in api_key:
         value = await addIncome(db=db, types=types, wallet_name=wallet_name, amount=money, description=description)
+        print(value)
 
         if not value:
             raise HTTPException(status_code=404, detail="Error :(")
@@ -137,7 +132,7 @@ async def income(
                 types=types,
                 amount=value.amount,
             )
-
+            print(result)
             if result.get("status") == "success":
                 return {"date": presentDate, "value": value}
             else:
@@ -153,11 +148,13 @@ async def income(
 async def expense(
     wallet_name: str,
     money: float, 
-    types: str, 
+    types: str,  # It had slash between, try to use string it won't work 
     token: Union[str, None] = Query(default=Required, max_length=50),
     description: Union[str, None] = None, 
     db: Session = Depends(get_db)
     ):
+
+    types = "ขนม/น้ำดื่ม" if types == "ขนม" else types # types
 
     if token in api_key:
         value = await addExpense(db=db, types=types, wallet_name=wallet_name , amount=money, description=description)
