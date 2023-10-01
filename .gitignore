@@ -1,5 +1,6 @@
 *.json
 *.xlsx
+*.txt
 
 /.idea
 /env
@@ -13,6 +14,7 @@
 /src/excel
 /src/excel/readExcel.py
 
-/src/keys.env
 
+/src/Database/keys.env
+/src/sheet/__pycache__
 ./todo.txt
