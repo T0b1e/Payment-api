@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.functions import sum as sums
 from sqlalchemy.exc import IntegrityError
-from src.models import Main, TransactionsTable, IncomeTable, ExpenseTable, TransferTable
+from cruds.models import Main, TransactionsTable, IncomeTable, ExpenseTable, TransferTable
 from datetime import datetime, date
 
 

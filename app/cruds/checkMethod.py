@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.functions import sum as sums
-from src.models import Main, TransactionsTable
+from cruds.models import Main, TransactionsTable
 from datetime import date
 
 

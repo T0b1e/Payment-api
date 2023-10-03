@@ -4,12 +4,13 @@ import uvicorn
 
 from sqlalchemy.orm import Session
 
-from src.crud import addExpense, addIncome, transfer_between_wallets
-from src.checkMethod import checkWalletBalance, checkAllWalletBalance, checkTransactions
+from cruds.crud import addExpense, addIncome, transfer_between_wallets
+from cruds.checkMethod import checkWalletBalance, checkAllWalletBalance, checkTransactions
+from cruds.database import SessionLocal, engine
 
-from src.database import SessionLocal, engine
-import src.models as models
-from src.sheet.updateSheet import sending_package
+import cruds.models as models
+
+from sheet.updateSheet import sending_package
 
 from datetime import datetime
 from typing import Union
@@ -19,7 +20,8 @@ import os
 
 from pydantic import Required
 
-dotenv.load_dotenv('./src/Database/keys.env')
+dotenv.load_dotenv('C:\\Users\\asus\\Desktop\\Udemy\\payment-api\\src\\Database\\keys.env')
+
 api_key = os.getenv('API_KEY')
 
 app = FastAPI()
@@ -79,7 +81,7 @@ async def all_wallet_balances(
     if token and token in api_key:
         value = checkAllWalletBalance(db)
         if value:
-            return {"date": f'2023-01-01 --> {presentDate}', "value": value}
+            return {"date": f'2023-01-01 --> {presentDate}', "value": value, "sum": str(round(sum(value.values()), 2)) +  " Baht"}
         
         raise HTTPException(status_code=404, detail="No value available yet")
     raise HTTPException(status_code=404, detail="Invalid API key")
