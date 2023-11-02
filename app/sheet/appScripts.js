@@ -1,12 +1,15 @@
 const now = new Date();
 
+// Define an array of month names
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 const month = MONTH_NAMES[now.getMonth()];
 const day = now.getDate() + 1;
 
+// Main Function
 function doGet(e) {
   try {
+    // Each Param
     const params = e.parameter;
     const action = params.action;
     const walletName = params.wallet_id;
@@ -17,12 +20,15 @@ function doGet(e) {
 
     let resText = "";
 
+    // Handle different actions based on the request parameter
     if (action === "income" || action === "expense") {
       resText = JSON.stringify(handleTransaction(sheet, walletName, types, rawAmount, day, action));
+
     } else if (action === "transfer") {
-      const destination = params.destination;
+      const destination = parseFloat(params.destination);
       const destinationWalletName = params.destination_wallet_id;
-      resText = JSON.stringify(handleTransfer(sheet, walletName, destinationWalletName, destination, rawAmount, day, action));
+      resText = JSON.stringify(handleTransfer(sheet, walletName, destinationWalletName, destination, day, action));
+
     } else if (action === "modify") {
       const newDate = new Date(params.date);
       const newDay = newDate.getDate() + 1;
@@ -30,8 +36,7 @@ function doGet(e) {
       resText = JSON.stringify(handleModify(sheet, walletName, newType, rawAmount, newDay, action));
     }
 
-    // Logger.log(resText);
-
+    // Create and return the response
     const response = {
       statusCode: 200,
       resText
@@ -41,6 +46,7 @@ function doGet(e) {
       .createTextOutput(JSON.stringify(response))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (error) {
+
     const response = {
       statusCode: 500,
       errorMessage: error.toString(),
@@ -52,6 +58,7 @@ function doGet(e) {
   }
 }
 
+// Function to log data to a spreadsheet
 function logTemp(kwargs) {
   const ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(`History${month.substring(0, 3)}`);
   console.log(1);
@@ -68,6 +75,7 @@ function setCellValue(sheet, row, day, value) {
   sheet.getRange(row, day).setValue(value);
 }
 
+// Function to find the row corresponding to a specific action and type
 function findRow(action, types) {
   switch (action) {
     case "income":
@@ -79,6 +87,7 @@ function findRow(action, types) {
   }
 }
 
+// Function to handle income and expense transactions
 function handleTransaction(sheet, walletName, types, rawAmount, day, action) {
   const typeRow = findRow(action, types);
   const walletRow = findWalletRow(walletName);
@@ -88,15 +97,22 @@ function handleTransaction(sheet, walletName, types, rawAmount, day, action) {
     const currentWalletValue = getCellValue(sheet, walletRow, day);
 
     const updatedTypeValue = isNaN(currentTypeValue) ? 0 : currentTypeValue + rawAmount;
-    const updatedWalletValue = isNaN(currentWalletValue) ? 0 : 
-      action === 'income' ? currentWalletValue + rawAmount : currentWalletValue - rawAmount;
+    const updatedWalletValue = isNaN(currentWalletValue) ? 0 : action === 'income' ? currentWalletValue + rawAmount : currentWalletValue - rawAmount;
 
     setCellValue(sheet, typeRow, day, updatedTypeValue);
     setCellValue(sheet, walletRow, day, updatedWalletValue);
 
-    logTemp(`["action": ${action}, "day": ${day}, "walletName": ${walletName}, "types": ${types}, "rawAmount": ${rawAmount}, "currentTypeValue": ${currentTypeValue}, "currentWalletValue": ${currentWalletValue}, "updatedTypeValue": ${updatedTypeValue}, "updatedWalletValue": ${updatedWalletValue}]`);
+    logTemp({
+      "action": action,
+      "date": day,
+      "amount": rawAmount,
+      [`old ${types} amount`]: currentTypeValue || 0,
+      [`new ${types} amount`]: updatedTypeValue,
+      [`old ${walletName} amount`]: currentWalletValue,
+      [`new ${walletName} amount`]: updatedWalletValue,
+    });
 
-  return {
+    return {
       "action": action,
       "date": day,
       "amount": rawAmount,
@@ -110,6 +126,7 @@ function handleTransaction(sheet, walletName, types, rawAmount, day, action) {
   }
 }
 
+// Function to handle transfer transactions
 function handleTransfer(sheet, walletName, destinationWalletName, destination, day) {
   const walletOriginRow = findWalletRow(walletName);
   const walletDestinationRow = findWalletRow(destinationWalletName);
@@ -117,40 +134,36 @@ function handleTransfer(sheet, walletName, destinationWalletName, destination, d
   const currentWalletOriginValue = getCellValue(sheet, walletOriginRow, day);
   const currentWalletDestinationValue = getCellValue(sheet, walletDestinationRow, day);
 
-  /* // seem doesn't working out use many query
-  var currentWalletOriginValue = sheet.getRange(walletOriginRow, day).getValue();
-  var currentWalletDestinationValue = sheet.getRange(walletDestinationRow, day).getValue();
-
-  if (currentWalletOriginValue !== NaN && currentWalletDestinationValue == NaN)
-  {
-    //pull from previous
-  }
-  else {
-    currentExpenseValue += rawAmount;
-    currentWalletValue -= rawAmount; 
-  }
-  */
-
-  // instead get value from API seem better
   if (walletOriginRow !== null && walletDestinationRow !== null && day) {
-    sheet.getRange(walletOriginRow, day).setValue(currentWalletOriginValue -= destination);
-    sheet.getRange(walletDestinationRow, day).setValue(currentWalletDestinationValue += destination);
+    sheet.getRange(walletOriginRow, day).setValue(currentWalletOriginValue - destination);
+    sheet.getRange(walletDestinationRow, day).setValue(currentWalletDestinationValue + destination);
   }
 
-  logTemp(`["action": ${action}, "day": ${day}, "walletName": ${walletName}, "typesv: ${types}, "rawAmount": ${rawAmount}, "CurrentWallet": ${walletName}, "currentValue": ${currentWalletOriginValue -= destination}, "DestinationWallet": ${destinationWalletName}, "destinationValue": ${currentWalletDestinationValue += destinatio}] \n "after passing through updated"`);
+  logTemp({
+    "action": "transfer",
+    "day": day,
+    "walletName": walletName,
+    "typesv": types,
+    "rawAmount": rawAmount,
+    "CurrentWallet": walletName,
+    "currentValue": currentWalletOriginValue - destination,
+    "DestinationWallet": destinationWalletName,
+    "destinationValue": currentWalletDestinationValue + destination,
+    "after passing through updated": ""
+  });
 
   return {
-    "action": action,
+    "action": "transfer",
     "date": day,
     "amount": rawAmount,
     [`old ${walletName} amount`]: currentWalletOriginValue || 0,
-    [`new ${destinationWalletName} amount`]: currentWalletOriginValue -= destination,
+    [`new ${destinationWalletName} amount`]: currentWalletOriginValue - destination,
     [`old ${walletName} amount`]: currentWalletDestinationValue || 0,
-    [`new ${destinationWalletName} amount`]: currentWalletDestinationValue += destination,
+    [`new ${destinationWalletName} amount`]: currentWalletDestinationValue + destination,
   };
-  
 }
 
+// Function to handle modifications to transactions
 function handleModify(sheet, walletName, newType, rawAmount, newDate) {
   const incomeTypeRow = findIncomeTypeRow(newType);
   const expenseTypeRow = findExpenseTypeRow(newType);
@@ -160,12 +173,18 @@ function handleModify(sheet, walletName, newType, rawAmount, newDate) {
     const currentWalletOriginValue = getCellValue(sheet, walletRow, newDate);
     const updatedWalletValue = currentWalletOriginValue + rawAmount;
 
-    // Update the values in the sheet
     sheet.getRange(walletRow, newDate).setValue(updatedWalletValue);
     sheet.getRange(incomeTypeRow, newDate).setValue(rawAmount);
 
-    logTemp(`["action": "modify", "day": ${day}, "walletName": ${walletName}, "AfterChangeValue": ${rawAmount}, "currentWallet": ${walletName}, "BeforeChangeValue": ${currentWalletOriginValue}, "New Type": ${newType}]`);
-
+    logTemp({
+      "action": "modify",
+      "day": day,
+      "walletName": walletName,
+      "AfterChangeValue": rawAmount,
+      "currentWallet": walletName,
+      "BeforeChangeValue": currentWalletOriginValue,
+      "New Type": newType
+    });
 
     return {
       "action": "modify",
@@ -179,12 +198,20 @@ function handleModify(sheet, walletName, newType, rawAmount, newDate) {
     const currentWalletOriginValue = getCellValue(sheet, walletRow, newDate);
     const updatedWalletValue = currentWalletOriginValue - rawAmount;
 
-    // Update the values in the sheet
     sheet.getRange(walletRow, newDate).setValue(updatedWalletValue);
     sheet.getRange(expenseTypeRow, newDate).setValue(rawAmount);
 
-  logTemp(`["action": ${action}, "day": ${day}, "walletName": ${walletName}, "types": ${types}, "rawAmount": ${rawAmount}, "currentTypeValue": ${currentTypeValue}, "currentWalletValue": ${currentWalletValue}, "updatedTypeValue": ${updatedTypeValue}, "updatedWalletValue": ${updatedWalletValue}]`);
-
+    logTemp({
+      "action": "modify",
+      "day": day,
+      "walletName": walletName,
+      "types": types,
+      "rawAmount": rawAmount,
+      "currentTypeValue": currentTypeValue,
+      "currentWalletValue": currentWalletValue,
+      "updatedTypeValue": updatedTypeValue,
+      "updatedWalletValue": updatedWalletValue
+    });
 
     return {
       "action": "modify",
@@ -197,6 +224,7 @@ function handleModify(sheet, walletName, newType, rawAmount, newDate) {
   }
 }
 
+// Function to find the row corresponding to a specific wallet name
 function findWalletRow(walletName) {
   switch (walletName) {
     case "Wallet": return 3;
@@ -211,6 +239,7 @@ function findWalletRow(walletName) {
   }
 }
 
+// Function to find the row corresponding to a specific income type
 function findIncomeTypeRow(incomeType) {
   switch (incomeType) {
     case "เงินเดือน": return 13;
@@ -221,6 +250,7 @@ function findIncomeTypeRow(incomeType) {
   }
 }
 
+// Function to find the row corresponding to a specific expense type
 function findExpenseTypeRow(expenseType) {
   switch (expenseType) {
     case "ข้าวเช้า": return 19;
@@ -238,11 +268,11 @@ function findExpenseTypeRow(expenseType) {
   }
 }
 
+// Function to testing production
 function testDoGet() {
   const e = {
-    parameter: {'action': 'income', 'wallet_id': 'SCB', 'types': 'เงินเดือน', 'rawAmount': 123.0}
+    parameter: { 'action': 'income', 'wallet_id': 'SCB', 'types': 'เงินเดือน', 'rawAmount': 123.0 }
   };
 
-  doGet(e); 
+  doGet(e);
 }
-
