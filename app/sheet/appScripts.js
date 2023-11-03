@@ -1,15 +1,17 @@
+// Get the current date
 const now = new Date();
 
 // Define an array of month names
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
+// Get the current month and day
 const month = MONTH_NAMES[now.getMonth()];
 const day = now.getDate() + 1;
 
-// Main Function
+// Function to handle HTTP GET requests
 function doGet(e) {
   try {
-    // Each Param
+    // Extract parameters from the request
     const params = e.parameter;
     const action = params.action;
     const walletName = params.wallet_id;
@@ -21,34 +23,41 @@ function doGet(e) {
     let resText = "";
 
     // Handle different actions based on the request parameter
+
     if (action === "income" || action === "expense") {
       resText = JSON.stringify(handleTransaction(sheet, walletName, types, rawAmount, day, action));
 
     } else if (action === "transfer") {
-      const destination = parseFloat(params.destination);
       const destinationWalletName = params.destination_wallet_id;
-      resText = JSON.stringify(handleTransfer(sheet, walletName, destinationWalletName, destination, day, action));
+      resText = JSON.stringify(handleTransfer(sheet, walletName, destinationWalletName, rawAmount, day, action));
 
     } else if (action === "modify") {
+      // const newDate = new Date(params.date); // ON FIXING
+      // const newDay = newDate.getDate() + 1;
+      // const newType = params.newType;
+      // resText = JSON.stringify(handleModify(sheet, walletName, newType, rawAmount, newDay, action));
+      resText = JSON.stringify("On Fixing Process");
+
+    } else if (action === "check") {
       const newDate = new Date(params.date);
       const newDay = newDate.getDate() + 1;
-      const newType = params.newType;
-      resText = JSON.stringify(handleModify(sheet, walletName, newType, rawAmount, newDay, action));
+      resText = JSON.stringify(checkWalletValue(sheet, walletName, newDay));
     }
 
     // Create and return the response
     const response = {
-      statusCode: 200,
-      resText
+      statusCode: resText ? "\u2705" : "\u274C", 
+      resText: resText ? JSON.parse(resText) : "",  
     };
+
+    // console.log(response)
 
     return ContentService
       .createTextOutput(JSON.stringify(response))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (error) {
-
     const response = {
-      statusCode: 500,
+      statusCode: "\u274C", 
       errorMessage: error.toString(),
     };
 
@@ -60,17 +69,22 @@ function doGet(e) {
 
 // Function to log data to a spreadsheet
 function logTemp(kwargs) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(`History${month.substring(0, 3)}`);
-  console.log(1);
-  var values = ss.getRange(1, day, ss.getLastRow(), 1).getValues();
-  var lastRow = values.filter(String).length;
-  ss.getRange(lastRow + 1, day).setValue(JSON.stringify(kwargs));
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(`History${month.substring(0, 3)}`);
+    var values = ss.getRange(1, day, ss.getLastRow(), 1).getValues();
+    var lastRow = values.filter(String).length;
+    ss.getRange(lastRow + 1, day).setValue(JSON.stringify(kwargs));
+  } catch (error) {
+    Logger.log("Error occurred while logging data: " + error);
+  }
 }
 
+// Function to get the value of a cell in a spreadsheet
 function getCellValue(sheet, row, day) {
   return sheet.getRange(row, day).getValue();
 }
 
+// Function to set the value of a cell in a spreadsheet
 function setCellValue(sheet, row, day, value) {
   sheet.getRange(row, day).setValue(value);
 }
@@ -84,6 +98,33 @@ function findRow(action, types) {
       return findExpenseTypeRow(types);
     default:
       return null;
+  }
+}
+
+function checkWalletValue(sheet, walletName = null, newDay) {
+
+  if (walletName) {
+    const walletRow = findWalletRow(walletName);
+    if (!isNaN(walletRow)) {
+      const walletValue = getCellValue(sheet, walletRow, newDay);
+      return {
+        wallet: walletName,
+        value: walletValue
+      };
+    } else {
+      return {
+        error: "Invalid wallet name"
+      };
+    }
+  } else {
+    const walletValues = {};
+    const walletNames = ["Wallet", "SCB", "BLB", "True Wallet", "BLANK", "Red Card", "MRT Card", "BTS Card"];
+    for (let name of walletNames) {
+      const walletRow = findWalletRow(name);
+      const walletValue = getCellValue(sheet, walletRow, newDay);
+      walletValues[name] = walletValue;
+    }
+    return walletValues;
   }
 }
 
@@ -103,124 +144,61 @@ function handleTransaction(sheet, walletName, types, rawAmount, day, action) {
     setCellValue(sheet, walletRow, day, updatedWalletValue);
 
     logTemp({
-      "action": action,
       "date": day,
+      "action": action,
+      "types": types,
       "amount": rawAmount,
-      [`old ${types} amount`]: currentTypeValue || 0,
-      [`new ${types} amount`]: updatedTypeValue,
-      [`old ${walletName} amount`]: currentWalletValue,
-      [`new ${walletName} amount`]: updatedWalletValue,
+      "updatedDeposit": parseFloat(updatedTypeValue).toFixed(2),
+      "wallet": walletName,
+      "updatedWallet": parseFloat(updatedWalletValue).toFixed(2),
     });
 
     return {
-      "action": action,
-      "date": day,
-      "amount": rawAmount,
-      [`old ${types} amount`]: currentTypeValue || 0,
-      [`new ${types} amount`]: updatedTypeValue,
-      [`old ${walletName} amount`]: currentWalletValue,
-      [`new ${walletName} amount`]: updatedWalletValue,
+      "Date": day,
+      "Types": types,
+      "Amount": rawAmount,
+      "Updated Deposit": updatedTypeValue,
+      "Wallet": walletName,
+      "Updated Wallet": updatedWalletValue,
     };
   } else {
     Logger.log("Invalid typeRow or walletRow provided.");
   }
 }
 
-// Function to handle transfer transactions
-function handleTransfer(sheet, walletName, destinationWalletName, destination, day) {
+function handleTransfer(sheet, walletName, destinationWalletName, rawAmount, day, action) {
   const walletOriginRow = findWalletRow(walletName);
   const walletDestinationRow = findWalletRow(destinationWalletName);
 
   const currentWalletOriginValue = getCellValue(sheet, walletOriginRow, day);
   const currentWalletDestinationValue = getCellValue(sheet, walletDestinationRow, day);
 
-  if (walletOriginRow !== null && walletDestinationRow !== null && day) {
-    sheet.getRange(walletOriginRow, day).setValue(currentWalletOriginValue - destination);
-    sheet.getRange(walletDestinationRow, day).setValue(currentWalletDestinationValue + destination);
-  }
+  if (walletOriginRow !== walletDestinationRow) {
+    sheet.getRange(walletOriginRow, day).setValue(currentWalletOriginValue - rawAmount);
+    sheet.getRange(walletDestinationRow, day).setValue(currentWalletDestinationValue + rawAmount);
 
-  logTemp({
-    "action": "transfer",
-    "day": day,
-    "walletName": walletName,
-    "typesv": types,
-    "rawAmount": rawAmount,
-    "CurrentWallet": walletName,
-    "currentValue": currentWalletOriginValue - destination,
-    "DestinationWallet": destinationWalletName,
-    "destinationValue": currentWalletDestinationValue + destination,
-    "after passing through updated": ""
-  });
-
-  return {
-    "action": "transfer",
-    "date": day,
-    "amount": rawAmount,
-    [`old ${walletName} amount`]: currentWalletOriginValue || 0,
-    [`new ${destinationWalletName} amount`]: currentWalletOriginValue - destination,
-    [`old ${walletName} amount`]: currentWalletDestinationValue || 0,
-    [`new ${destinationWalletName} amount`]: currentWalletDestinationValue + destination,
-  };
-}
-
-// Function to handle modifications to transactions
-function handleModify(sheet, walletName, newType, rawAmount, newDate) {
-  const incomeTypeRow = findIncomeTypeRow(newType);
-  const expenseTypeRow = findExpenseTypeRow(newType);
-  const walletRow = findWalletRow(walletName);
-
-  if (incomeTypeRow !== null && newDate) {
-    const currentWalletOriginValue = getCellValue(sheet, walletRow, newDate);
-    const updatedWalletValue = currentWalletOriginValue + rawAmount;
-
-    sheet.getRange(walletRow, newDate).setValue(updatedWalletValue);
-    sheet.getRange(incomeTypeRow, newDate).setValue(rawAmount);
 
     logTemp({
-      "action": "modify",
       "day": day,
-      "walletName": walletName,
-      "AfterChangeValue": rawAmount,
+      "action": "transfer",
+      "amount": rawAmount,
       "currentWallet": walletName,
-      "BeforeChangeValue": currentWalletOriginValue,
-      "New Type": newType
+      "currentValue": currentWalletOriginValue - rawAmount,
+      "destinationWallet": destinationWalletName,
+      "destinationValue": currentWalletDestinationValue + rawAmount,
     });
 
     return {
-      "action": "modify",
-      "date": newDate,
-      "amount": rawAmount,
-      [`old ${walletName} amount`]: currentWalletOriginValue || 0,
-      [`new ${walletName} amount`]: updatedWalletValue,
-      [`new ${newType} amount`]: rawAmount,
+      "Day": day,
+      "Amount": rawAmount,
+      "Origin Wallet": walletName,
+      "Updated Origin Value": currentWalletOriginValue - rawAmount,
+      "Destination Wallet": destinationWalletName,
+      "Updated Destination Value": currentWalletDestinationValue + rawAmount,
     };
-  } else if (expenseTypeRow !== null && newDate) {
-    const currentWalletOriginValue = getCellValue(sheet, walletRow, newDate);
-    const updatedWalletValue = currentWalletOriginValue - rawAmount;
 
-    sheet.getRange(walletRow, newDate).setValue(updatedWalletValue);
-    sheet.getRange(expenseTypeRow, newDate).setValue(rawAmount);
-
-    logTemp({
-      "action": "modify",
-      "day": day,
-      "walletName": walletName,
-      "types": types,
-      "rawAmount": rawAmount,
-      "currentTypeValue": currentTypeValue,
-      "currentWalletValue": currentWalletValue,
-      "updatedTypeValue": updatedTypeValue,
-      "updatedWalletValue": updatedWalletValue
-    });
-
-    return {
-      "action": "modify",
-      "date": newDate,
-      "amount": rawAmount,
-      [`old ${walletName} amount`]: currentWalletOriginValue || 0,
-      [`new ${walletName} amount`]: updatedWalletValue,
-      [`new ${newType} amount`]: rawAmount,
-    };
+  } else {
+    Logger.log("Error: Invalid wallet or day");
   }
 }
 
@@ -268,11 +246,92 @@ function findExpenseTypeRow(expenseType) {
   }
 }
 
-// Function to testing production
+// Function to test the doGet function
 function testDoGet() {
   const e = {
-    parameter: { 'action': 'income', 'wallet_id': 'SCB', 'types': 'เงินเดือน', 'rawAmount': 123.0 }
+    //handleTransfer(sheet, walletName, destinationWalletName, rawAmount, day)
+    parameter: { 'action': 'check', 'wallet_id': 'SCB', 'date': '2023-11-01'}
   };
+
+  // date 1 Mon Jan 01 00:00:00 GMT+07:00 2001
+  // date 12 Sat Dec 01 00:00:00 GMT+07:00 2001
 
   doGet(e);
 }
+
+
+// ##########################################################
+
+
+// Function to handle modifications to transactions
+/* Fr this part need ID for modify else gonna be thought
+// ain't sure what exactly this part should do
+
+// Replace Old Value
+// Change That Transaction Amount
+
+function handleModify(sheet, walletName, newType, rawAmount, newDate) {
+  const incomeTypeRow = findIncomeTypeRow(newType);
+  const expenseTypeRow = findExpenseTypeRow(newType);
+  const walletRow = findWalletRow(walletName);
+
+  if (incomeTypeRow !== null && newDate) {
+    const currentWalletOriginValue = getCellValue(sheet, walletRow, newDate);
+    const updatedWalletValue = currentWalletOriginValue + rawAmount;
+
+    sheet.getRange(walletRow, newDate).setValue(updatedWalletValue);
+    sheet.getRange(incomeTypeRow, newDate).setValue(rawAmount);
+
+    logTemp({
+      "day": day,
+      "action": "modify",
+      "New Type": newType,
+      "amount": rawAmount,
+      "wallet": walletName,
+      "BeforeChangeValue": currentWalletOriginValue,
+      "AfterChangeValue": updatedWalletValue,
+    });
+
+    return {
+      "day": day,
+      "action": "modify",
+      "New Type": newType,
+      "amount": rawAmount,
+      "wallet": walletName,
+      "before change value": currentWalletOriginValue,
+      "after change value": updatedWalletValue,
+    };
+
+  } else if (expenseTypeRow !== null && newDate) {
+    const currentWalletOriginValue = getCellValue(sheet, walletRow, newDate);
+    const updatedWalletValue = currentWalletOriginValue - rawAmount;
+
+    sheet.getRange(walletRow, newDate).setValue(updatedWalletValue);
+    sheet.getRange(expenseTypeRow, newDate).setValue(rawAmount);
+
+    logTemp({
+      "day": day,
+      "action": "modify",
+      "walletName": walletName,
+      "newType": newType,
+      "amount": rawAmount,
+      "currentWalletValue": currentWalletOriginValue || 0,
+      "updatedWalletValue": updatedWalletValue,
+    });
+
+    return {
+      "day": day,
+      "action": "modify",
+      "wallet": walletName,
+      "newType": newType,
+      "old wallet amount": currentWalletOriginValue || 0,
+      "amount": rawAmount,
+      "new wallet amount": updatedWalletValue,
+      "new amount": rawAmount,
+    };
+  }
+}
+*/
+
+
+
