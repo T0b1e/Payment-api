@@ -2,104 +2,112 @@ from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.security import OAuth2PasswordBearer
 import uvicorn
 
-from sqlalchemy.orm import Session
+import firebase_admin
+from firebase_admin import db, credentials
 
-from cruds.crud import addExpense, addIncome, transfer_between_wallets
-from cruds.checkMethod import checkWalletBalance, checkAllWalletBalance, checkTransactions
-from cruds.database import SessionLocal, engine
+from datetime import datetime, timedelta
 
-import cruds.models as models
-
-from sheet.updateSheet import sending_package
-
-from datetime import datetime
-from typing import Union
+from typing import Union, Optional
 
 import dotenv
 import os
 
-from pydantic import Required
+# dotenv.load_dotenv('C:\\Users\\asus\\Desktop\\Udemy\\payment-api\\src\\Database\\keys.env')
 
-dotenv.load_dotenv('C:\\Users\\asus\\Desktop\\Udemy\\payment-api\\src\\Database\\keys.env')
-
-api_key = os.getenv('API_KEY')
+# api_key = os.getenv('API_KEY')
+api_key = ".Na592600"
 
 app = FastAPI()
 
-# Header and Encrupt
-timeNow = datetime.now()
-presentDate = timeNow.strftime("%Y-%m-%d")
+current_datetime_utc = datetime.utcnow()
 
-models.Base.metadata.create_all(bind=engine)
+current_datetime = current_datetime_utc + timedelta(hours=7)
 
+date_str = current_datetime.strftime('%Y-%m-%d')
+time_str = current_datetime.strftime('%H:%M:%S')
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
+cred = credentials.Certificate("../credentials.json")
+firebase_admin.initialize_app(cred, {
+                                    "databaseURL": "https://ledger-c71bc-default-rtdb.firebaseio.com/"
+                                    })
 
 @app.get("/")
 async def root():
     return {"message": "It's Working fine"}
 
 
-@app.get("/api/v2/status_db")
-async def check_balance(
-    db: Session = Depends(get_db),
-):
-    try:
-        db.execute("SELECT 1")
-        return {"message": "Database connection is working"}
-    except Exception as e:
-        return {"message": f"Database connection error: {str(e)}"}
+def get_wallet_reference(wallet_name):
+    return db.reference(f"/wallet_id/{wallet_name}")
 
 
-@app.get("/api/v2/check/wallet-balance") # Specify wallet
+def get_all_wallet_balances():
+    wallet_ref = db.reference("/wallet_id")
+    wallets = wallet_ref.get()
+
+    if wallets:
+        return wallets
+    else:
+        return {}
+
+
+def get_transactions_by_date(date):
+    transactions_ref = db.reference("/transactions")
+    transactions = transactions_ref.child(date).get()
+
+    if transactions:
+        return transactions
+    else:
+        return {}
+
+
+def get_transactions_reference():
+    return db.reference("/transactions")
+
+
+@app.get("/api/v2/check/wallet-balance")
 async def wallet_balance(
     wallet_name: str,
-    db: Session = Depends(get_db),
-    token: Union[str, None] = Query(default=None, max_length=50)
+    token: str
 ):
     if token and token in api_key:
-        value = checkWalletBalance(db=db, wallet_name=wallet_name)
+        wallet_ref = get_wallet_reference(wallet_name)
+        value = wallet_ref.get()
 
         if value:
-            return {"date": f'2023-10-01 --> {presentDate}', "value": value}
+            return {"date": f'2023-10-01 --> {date_str}', "value": value}
         
         raise HTTPException(status_code=404, detail="No value available yet")
-    raise HTTPException(status_code=404, detail="Invalid API key")
+    raise HTTPException(status_code=401, detail="Invalid API key")
 
 
-@app.get("/api/v2/check/wallet-balance/all")  # none param
+@app.get("/api/v2/check/wallet-balance/all")
 async def all_wallet_balances(
-    db: Session = Depends(get_db),
     token: Union[str, None] = Query(default=None, max_length=50)
 ):
     if token and token in api_key:
-        value = checkAllWalletBalance(db)
+
+        value = get_all_wallet_balances()
+
         if value:
-            return {"date": f'2023-01-01 --> {presentDate}', "value": value, "sum": str(round(sum(value.values()), 2)) +  " Baht"}
+            return {"date": f'2023-01-01 --> {date_str}', "value": value, "sum": str(round(sum(value.values()), 2)) + " Baht"}
         
         raise HTTPException(status_code=404, detail="No value available yet")
-    raise HTTPException(status_code=404, detail="Invalid API key")
+    raise HTTPException(status_code=401, detail="Invalid API key")
 
 
-@app.get("/api/v2/check/transaction/{date}")  # Specify date
+@app.get("/api/v2/check/transaction/{date}")
 async def transactions_by_date(
     date: str,
-    db: Session = Depends(get_db),
-    token: Union[str, None] = Query(default=None, max_length=50)
+    token: str
 ):
     if token and token in api_key:
-        transactions = checkTransactions(db=db, date=date)
+
+        transactions = get_transactions_by_date(date)
 
         if not transactions:
             raise HTTPException(status_code=404, detail="Error :(")
         
-        total_amount = sum(transactions.values())
+        total_amount = sum(transaction.get("amount", 0) for transaction in transactions.values())
 
         return {
             "date": date,
@@ -107,7 +115,7 @@ async def transactions_by_date(
             "total_amount": total_amount,
         }
     
-    raise HTTPException(status_code=404, detail="Invalid API key")
+    raise HTTPException(status_code=401, detail="Invalid API key")
 
 
 @app.post("/api/v2/income/{types}")
@@ -115,75 +123,70 @@ async def income(
     wallet_name: str,
     money: float, 
     types: str, 
-    token: Union[str, None] = Query(default=Required, max_length=50),
-    description: Union[str, None] = None, 
-    db: Session = Depends(get_db)
+    token: str,
+    description: Optional[str] = None
 ):
     if token in api_key:
-        value = await addIncome(db=db, types=types, wallet_name=wallet_name, amount=money, description=description)
-        print(value)
+        wallet_ref = get_wallet_reference(wallet_name)
 
-        if not value:
-            raise HTTPException(status_code=404, detail="Error :(")
+        current_wallet_value = wallet_ref.get()
+        new_wallet_value = current_wallet_value + money
+        wallet_ref.set(new_wallet_value)
 
-        try:
+        transaction_data = {
+        'timestamp': time_str,
+        'action': "income", 
+        'wallet': wallet_name, 
+        'wallet_after_balance': new_wallet_value,
+        'types': types, 
+        'amount': money,
+        'description': description 
+        }
 
-            result = await sending_package(
-                action="income",
-                wallet_id=wallet_name,
-                types=types,
-                amount=value.amount,
-            )
-            print(result)
-            if result.get("status") == "success":
-                return {"date": presentDate, "value": value}
-            else:
-                raise HTTPException(status_code=500, detail="Sending package error")
+        transactions_ref = db.reference('/transactions')
+        transactions_ref.child(date_str).push(transaction_data)
 
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
-
-    raise HTTPException(status_code=404, detail="Invalid API keys")
+        return {"date": date_str, "value": {"wallet balance": new_wallet_value, 
+                                               "amount": money}}
+    
+    raise HTTPException(status_code=401, detail="Invalid API keys")
 
 
 @app.post("/api/v2/expense/{types}")
 async def expense(
     wallet_name: str,
     money: float, 
-    types: str,  # It had slash between, try to use string it won't work 
-    token: Union[str, None] = Query(default=Required, max_length=50),
-    description: Union[str, None] = None, 
-    db: Session = Depends(get_db)
-    ):
-
-    types = "ขนม/น้ำดื่ม" if types == "ขนม" else types # types
-
+    types: str,
+    token: str,
+    description: Optional[str] = None
+):
     if token in api_key:
-        value = await addExpense(db=db, types=types, wallet_name=wallet_name , amount=money, description=description)
+        wallet_ref = get_wallet_reference(wallet_name)
 
-        if not value:
-            raise HTTPException(status_code=404, detail="Error :(")
+        current_wallet_value = wallet_ref.get()
+        new_wallet_value = current_wallet_value - money
+        wallet_ref.set(new_wallet_value)
 
-        try:
+        transaction_data = {
+            'timestamp': time_str,
+            'action': "expense",  # Updated to "expense"
+            'wallet': wallet_name, 
+            'wallet_after_balance': new_wallet_value,  # Updated to use new_balance
+            'types': types, 
+            'amount': money,
+            'description': description 
+        }
 
-            result = await sending_package(
-                action = "expense",
-                wallet_id = wallet_name,
-                types = types,
-                amount = value.amount,
-            )
+        transactions_ref = db.reference('/transactions')
+        transactions_ref.child(date_str).push(transaction_data)
 
-            if result.get("status") == "success":
-                return {"date": presentDate, "value": value}
-            else:
-                raise HTTPException(status_code=500, detail="Sending package error")
-
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
-
-    raise HTTPException(status_code=404, detail="Invalid API keys")
+        return {"date": date_str, "value": {"wallet balance": new_wallet_value, 
+                                               "amount": money}}
+    
+    raise HTTPException(status_code=401, detail="Invalid API keys")
 
 
+"""
 @app.post("/api/v2/transfer")
 async def transfer_funds(
     origin_wallet_name: str,
@@ -218,7 +221,7 @@ async def transfer_funds(
             )
         
             if result.get("status") == "success":
-                return {"date": presentDate, "value": transfer_result}
+                return {"date": date_str, "value": transfer_result}
             else:
                 raise HTTPException(status_code=500, detail="Sending package error")
 
@@ -263,7 +266,7 @@ async def transfer_funds(
         return {"message": "Transfer successful", "transaction_id": transfer_result.id}
     else:
         raise HTTPException(status_code=400, detail="Transfer failed")
-
+"""
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
