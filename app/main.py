@@ -12,7 +12,7 @@ from typing import Union, Optional
 import dotenv
 import os
 
-dotenv.load_dotenv('...')
+dotenv.load_dotenv('../keys.env')
 
 api_key = os.getenv('API_KEY')
 
@@ -143,6 +143,12 @@ async def income(
         }
 
         transactions_ref = db.reference('/transactions')
+
+        date_entry = transactions_ref.child(date_str).get()
+
+        if date_entry is None:
+            transactions_ref.child(date_str).set({})
+
         transactions_ref.child(date_str).push(transaction_data)
 
         return {"date": date_str, "value": {"wallet balance": new_wallet_value, 
@@ -175,10 +181,16 @@ async def expense(
             'amount': money,
             'description': description 
         }
-
+        
         transactions_ref = db.reference('/transactions')
-        transactions_ref.child(date_str).push(transaction_data)
 
+        date_entry = transactions_ref.child(date_str).get()
+
+        if date_entry is None:
+            transactions_ref.child(date_str).set({})
+
+        transactions_ref.child(date_str).push(transaction_data)
+        
         return {"date": date_str, "value": {"wallet balance": new_wallet_value, 
                                                "amount": money}}
     
