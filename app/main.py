@@ -12,10 +12,9 @@ from typing import Union, Optional
 import dotenv
 import os
 
-# dotenv.load_dotenv('C:\\Users\\asus\\Desktop\\Udemy\\payment-api\\src\\Database\\keys.env')
+dotenv.load_dotenv('...')
 
-# api_key = os.getenv('API_KEY')
-api_key = ".Na592600"
+api_key = os.getenv('API_KEY')
 
 app = FastAPI()
 
