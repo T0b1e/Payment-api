@@ -186,7 +186,7 @@ async def expense(
     raise HTTPException(status_code=401, detail="Invalid API keys")
 
 
-"""
+
 @app.post("/api/v2/transfer")
 async def transfer_funds(
     origin_wallet_name: str,
@@ -194,79 +194,100 @@ async def transfer_funds(
     money: float,
     token: str = Query(default=None, max_length=50),
     description: str = None,
-    db: Session = Depends(get_db)
 ):
-    if token in api_key:
-        transfer_result = await transfer_between_wallets( 
-            db=db, 
-            origin_wallet_name=origin_wallet_name, 
-            destination_wallet_name=destination_wallet_name, 
-            amount=money, 
-            description=description 
-        )
+    if token not in api_key:
+        raise HTTPException(status_code=401, detail="Invalid API key")
 
-        if not transfer_result:
-            raise HTTPException(status_code=404, detail="Error :(")
+    origin_wallet_ref = get_wallet_reference(origin_wallet_name)
+    destination_wallet_ref = get_wallet_reference(destination_wallet_name)
 
-        try:
+    origin_balance = float(origin_wallet_ref.get())
+    destination_balance = float(destination_wallet_ref.get())
 
-            result = await sending_package(
-                action="transfer",
-                wallet_id=origin_wallet_name,
-                types="transfer",
-                origin_wallet_value=transfer_result.origin_wallet_value,
-                destination_wallet_id=destination_wallet_name,
-                destination_wallet_value=transfer_result.destination_wallet_value,
-                amount=money,
-            )
-        
-            if result.get("status") == "success":
-                return {"date": date_str, "value": transfer_result}
-            else:
-                raise HTTPException(status_code=500, detail="Sending package error")
+    if origin_balance < money:
+        raise HTTPException(status_code=400, detail="Insufficient funds in the origin wallet")
 
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+    new_origin_balance = origin_balance - money
+    new_destination_balance = destination_balance + money
 
-    raise HTTPException(status_code=404, detail="Invalid API keys")
+    origin_wallet_ref.set(new_origin_balance)
+    destination_wallet_ref.set(new_destination_balance)
 
+    try:
 
+        origin_transaction_data = {
+            'timestamp': time_str,
+            'action': "expense",
+            'wallet': origin_wallet_name,
+            'wallet_after_balance': new_origin_balance,
+            'types': "transfer",
+            'amount': money,
+            'description': description 
+        }
+
+        destination_transaction_data = {
+            'timestamp': time_str,
+            'action': "income",
+            'wallet': destination_wallet_name,
+            'wallet_after_balance': new_destination_balance,
+            'types': "transfer",
+            'amount': money,
+            'description': description 
+        }
+
+        transactions_ref = db.reference('/transactions')
+        transactions_ref.child(date_str).push(origin_transaction_data)
+        transactions_ref.child(date_str).push(destination_transaction_data)
+
+        return {"date": date_str, "value": {"origin wallet balance": new_origin_balance, 
+                                            "destination wallet balance": new_destination_balance, 
+                                            "amount": money}}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+"""
 @app.post("/api/v1/modify")
-async def transfer_funds(
-    origin_wallet_name: str,
-    destination_wallet_name: str,
-    money: float,
-    description: str = None,
-    token: str = Query(default=None, max_length=50),
-    db: Session = Depends(get_db)
+async def modify_transaction(
+    date:               str = Query(..., description="Date of the transaction (format: YYYY-MM-DD)"),
+    transaction_id:     str = Query(..., description="ID of the transaction to modify"),
+    new_description:    str = Query(None, description="New description for the transaction"),
+    new_amount:         float = Query(None, description="New amount for the transaction"),
+    new_wallet_balance: float = Query(None, description="New wallet balance"),
+    token:              str = Query(default=None, max_length=50),
 ):
     if token and token not in api_key:
         raise HTTPException(status_code=403, detail="Invalid API key")
 
-    transfer_result = transfer_between_wallets(
-        db =  db,
-        origin_wallet_name      = origin_wallet_name,
-        destination_wallet_name = destination_wallet_name,
-        amount =  money,
-        description =  description
-    )
+    try:
+        transactions_ref = db.reference('/transactions')
+        transaction_ref = transactions_ref.child(date).child(transaction_id)
 
-    if transfer_result: 
+        existing_transaction = transaction_ref.get()
 
-        result = sending_package(
-            action = "transfer",
-            wallet_id = origin_wallet_name,
-            types = "transfer",
-            origin_wallet_value = transfer_result.origin_wallet_value,
-            destination_wallet_id = destination_wallet_name,
-            destination_wallet_value = transfer_result.destination_wallet_value,
-            amount = money,
-        )
-        
-        return {"message": "Transfer successful", "transaction_id": transfer_result.id}
-    else:
-        raise HTTPException(status_code=400, detail="Transfer failed")
-"""
+        if existing_transaction:
+            # Update the transaction based on provided parameters
+            if new_description:
+                existing_transaction['description'] = new_description
+
+            if new_amount is not None:
+                existing_transaction['amount'] = new_amount
+
+            # Update the wallet balance if specified
+            if new_wallet_balance is not None:
+                existing_transaction['wallet_after_balance'] = new_wallet_balance
+
+            # Update the transaction in the database
+            transaction_ref.update(existing_transaction)
+
+            # Return the modified transaction
+            return {"message": "Transaction modified successfully", "transaction": existing_transaction}
+        else:
+            raise HTTPException(status_code=404, detail="Transaction not found")
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+        """
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

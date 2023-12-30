@@ -5,14 +5,13 @@
 /.idea
 /env
 
-/__pycache__
 .pytest_cache
 
 # src db
-/src/__pycache__
-/src/Database
-/src/excel
-/src/excel/readExcel.py
+/src
+
+app/cruds
+app/sheet
 
 
 /src/Database/keys.env
