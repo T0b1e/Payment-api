@@ -139,6 +139,7 @@ async def income(
         'wallet_after_balance': new_wallet_value,
         'types': types, 
         'amount': money,
+        'add_on': 0,  # reduce queary method
         'description': description 
         }
 
@@ -146,13 +147,29 @@ async def income(
 
         date_entry = transactions_ref.child(date_str).get()
 
-        if date_entry is None:
-            transactions_ref.child(date_str).set({})
+        ls = []
 
+        if date_entry is not None: # date exits
+
+            for transaction_id, transaction in date_entry.items():
+
+                if transaction['action'] == 'expense' and transaction['types'] == types:
+
+                    ls.append(float(transaction['amount']))
+
+            print(ls)
+
+            transaction_data['add_on'] = sum(ls) + money
+            transaction_data['wallet_after_balance'] = new_wallet_value
+            transactions_ref.child(date_str).push(transaction_data)
+
+            return {"date": date_str, "value": {"wallet balance": new_wallet_value, "amount": money, "add on": sum(ls) + money}}
+            
+        transaction_data['add_on'] = money
+        transaction_data['wallet_after_balance'] = new_wallet_value
         transactions_ref.child(date_str).push(transaction_data)
-
-        return {"date": date_str, "value": {"wallet balance": new_wallet_value, 
-                                               "amount": money}}
+            
+        return {"date": date_str, "value": {"wallet balance": new_wallet_value, "amount": money, "add on": money}}
     
     raise HTTPException(status_code=401, detail="Invalid API keys")
 
@@ -160,12 +177,15 @@ async def income(
 @app.post("/api/v2/expense/{types}")
 async def expense(
     wallet_name: str,
-    money: float, 
+    money: float,
     types: str,
     token: str,
     description: Optional[str] = None
 ):
+    ls = []
+
     if token in api_key:
+
         wallet_ref = get_wallet_reference(wallet_name)
 
         current_wallet_value = wallet_ref.get()
@@ -174,28 +194,45 @@ async def expense(
 
         transaction_data = {
             'timestamp': time_str,
-            'action': "expense",  # Updated to "expense"
-            'wallet': wallet_name, 
-            'wallet_after_balance': new_wallet_value,  # Updated to use new_balance
-            'types': types, 
+            'action': "expense",
+            'wallet': wallet_name,
+            'wallet_after_balance': new_wallet_value,
+            'types': types,
             'amount': money,
-            'description': description 
+            'add_on': 0, 
+            'description': description
         }
-        
+
         transactions_ref = db.reference('/transactions')
 
         date_entry = transactions_ref.child(date_str).get()
 
-        if date_entry is None:
-            transactions_ref.child(date_str).set({})
+        ls = []
 
+        if date_entry is not None: # date exits
+
+            for transaction_id, transaction in date_entry.items():
+
+                if transaction['action'] == 'expense' and transaction['types'] == types:
+
+                    ls.append(float(transaction['amount']))
+
+            print(ls)
+
+            transaction_data['add_on'] = sum(ls) + money
+            transaction_data['wallet_after_balance'] = new_wallet_value
+            transactions_ref.child(date_str).push(transaction_data)
+
+            return {"date": date_str, "value": {"wallet balance": new_wallet_value, "amount": money, "add on": sum(ls) + money}}
+            
+                
+        transaction_data['add_on'] = money
+        transaction_data['wallet_after_balance'] = new_wallet_value
         transactions_ref.child(date_str).push(transaction_data)
-        
-        return {"date": date_str, "value": {"wallet balance": new_wallet_value, 
-                                               "amount": money}}
-    
-    raise HTTPException(status_code=401, detail="Invalid API keys")
+            
+        return {"date": date_str, "value": {"wallet balance": new_wallet_value, "amount": money, "add on": money}}
 
+    raise HTTPException(status_code=401, detail="Invalid API keys")
 
 
 @app.post("/api/v2/transfer")
