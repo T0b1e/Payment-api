@@ -8,7 +8,7 @@ import requests
 cred = credentials.Certificate('credentials.json')
 
 app = firebase_admin.initialize_app(cred, {
-    'databaseURL': 'https://ledger-c71bc-default-rtdb.firebaseio.com/'
+    'databaseURL': '...'
 })
 
 transactions_ref = db.reference("transactions")
@@ -29,7 +29,7 @@ def on_snapshot(event):
 
         print(payload)
         
-        script_url = "https://script.google.com/macros/s/AKfycbyq8p3X529rM5FusrKmLwDUnEUoxRgnMfZcKP5dGRcnESHQupJtStkXkuPv6I3qluaL/exec"
+        script_url = "..."
     
         response = requests.get(script_url, params = payload)
         

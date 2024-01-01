@@ -12,7 +12,7 @@ from typing import Union, Optional
 import dotenv
 import os
 
-dotenv.load_dotenv('../keys.env')
+dotenv.load_dotenv('...')
 
 api_key = os.getenv('API_KEY')
 
@@ -25,9 +25,9 @@ current_datetime = current_datetime_utc + timedelta(hours=7)
 date_str = current_datetime.strftime('%Y-%m-%d')
 time_str = current_datetime.strftime('%H:%M:%S')
 
-cred = credentials.Certificate("../credentials.json")
+cred = credentials.Certificate("...")
 firebase_admin.initialize_app(cred, {
-                                    "databaseURL": "https://ledger-c71bc-default-rtdb.firebaseio.com/"
+                                    "databaseURL": "..."
                                     })
 
 @app.get("/")
@@ -290,48 +290,11 @@ async def transfer_funds(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-"""
-@app.post("/api/v1/modify")
-async def modify_transaction(
-    date:               str = Query(..., description="Date of the transaction (format: YYYY-MM-DD)"),
-    transaction_id:     str = Query(..., description="ID of the transaction to modify"),
-    new_description:    str = Query(None, description="New description for the transaction"),
-    new_amount:         float = Query(None, description="New amount for the transaction"),
-    new_wallet_balance: float = Query(None, description="New wallet balance"),
-    token:              str = Query(default=None, max_length=50),
-):
-    if token and token not in api_key:
-        raise HTTPException(status_code=403, detail="Invalid API key")
 
-    try:
-        transactions_ref = db.reference('/transactions')
-        transaction_ref = transactions_ref.child(date).child(transaction_id)
 
-        existing_transaction = transaction_ref.get()
+# @app.post("/api/v1/modify") TODO
 
-        if existing_transaction:
-            # Update the transaction based on provided parameters
-            if new_description:
-                existing_transaction['description'] = new_description
 
-            if new_amount is not None:
-                existing_transaction['amount'] = new_amount
-
-            # Update the wallet balance if specified
-            if new_wallet_balance is not None:
-                existing_transaction['wallet_after_balance'] = new_wallet_balance
-
-            # Update the transaction in the database
-            transaction_ref.update(existing_transaction)
-
-            # Return the modified transaction
-            return {"message": "Transaction modified successfully", "transaction": existing_transaction}
-        else:
-            raise HTTPException(status_code=404, detail="Transaction not found")
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-        """
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
