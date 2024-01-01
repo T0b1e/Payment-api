@@ -63,7 +63,7 @@ def get_transactions_reference():
     return db.reference("/transactions")
 
 
-@app.get("/api/v2/check/wallet-balance")
+@app.get("/api/v5/check/wallet-balance")
 async def wallet_balance(
     wallet_name: str,
     token: str
@@ -79,7 +79,7 @@ async def wallet_balance(
     raise HTTPException(status_code=401, detail="Invalid API key")
 
 
-@app.get("/api/v2/check/wallet-balance/all")
+@app.get("/api/v5/check/wallet-balance/all")
 async def all_wallet_balances(
     token: Union[str, None] = Query(default=None, max_length=50)
 ):
@@ -94,7 +94,7 @@ async def all_wallet_balances(
     raise HTTPException(status_code=401, detail="Invalid API key")
 
 
-@app.get("/api/v2/check/transaction/{date}")
+@app.get("/api/v5/check/transaction/{date}")
 async def transactions_by_date(
     date: str,
     token: str
@@ -117,7 +117,7 @@ async def transactions_by_date(
     raise HTTPException(status_code=401, detail="Invalid API key")
 
 
-@app.post("/api/v2/income/{types}")
+@app.post("/api/v5/income/{types}")
 async def income(
     wallet_name: str,
     money: float, 
@@ -172,7 +172,7 @@ async def income(
     raise HTTPException(status_code=401, detail="Invalid API keys")
 
 
-@app.post("/api/v2/expense/{types}")
+@app.post("/api/v5/expense/{types}")
 async def expense(
     wallet_name: str,
     money: float,
@@ -231,7 +231,7 @@ async def expense(
     raise HTTPException(status_code=401, detail="Invalid API keys")
 
 
-@app.post("/api/v2/transfer")
+@app.post("/api/v5/transfer")
 async def transfer_funds(
     origin_wallet_name: str,
     destination_wallet_name: str,
