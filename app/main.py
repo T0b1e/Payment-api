@@ -157,8 +157,6 @@ async def income(
 
                     ls.append(float(transaction['amount']))
 
-            print(ls)
-
             transaction_data['add_on'] = sum(ls) + money
             transaction_data['wallet_after_balance'] = new_wallet_value
             transactions_ref.child(date_str).push(transaction_data)
@@ -216,8 +214,6 @@ async def expense(
                 if transaction['action'] == 'expense' and transaction['types'] == types:
 
                     ls.append(float(transaction['amount']))
-
-            print(ls)
 
             transaction_data['add_on'] = sum(ls) + money
             transaction_data['wallet_after_balance'] = new_wallet_value
