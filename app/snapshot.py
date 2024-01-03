@@ -29,7 +29,7 @@ def on_snapshot(event):
             'rawAmount': raw_data['add_on']
         }
         
-        script_url = "..."
+        script_url = "https://script.google.com/macros/s/AKfycbyq8p3X529rM5FusrKmLwDUnEUoxRgnMfZcKP5dGRcnESHQupJtStkXkuPv6I3qluaL/exec"
     
         response = requests.get(script_url, params = payload)
         

@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException, Query
-from fastapi.security import OAuth2PasswordBearer
+# from fastapi.security import OAuth2PasswordBearer
 from fastapi.logger import logger
 import uvicorn
 
@@ -8,7 +8,7 @@ from firebase_admin import db, credentials
 
 from datetime import datetime, timedelta
 
-from typing import Union, Optional
+from typing import Optional
 from pydantic_settings import BaseSettings
 
 import dotenv
@@ -16,7 +16,7 @@ import os
 import sys
 
 
-dotenv.load_dotenv('../keys.env')
+dotenv.load_dotenv('...')
 
 api_key = os.getenv('API_KEY')
 
@@ -33,18 +33,13 @@ def init_webhooks(base_url):
 app = FastAPI()
 
 if settings.USE_NGROK:
-    # pyngrok should only ever be installed or initialized in a dev environment when this flag is set
     from pyngrok import ngrok
 
-    # Get the dev server port (defaults to 8000 for Uvicorn, can be overridden with `--port`
-    # when starting the server
     port = sys.argv[sys.argv.index("--port") + 1] if "--port" in sys.argv else "8000"
 
-    # Open a ngrok tunnel to the dev server
     public_url = ngrok.connect(port).public_url
     logger.info("ngrok tunnel \"{}\" -> \"http://127.0.0.1:{}\"".format(public_url, port))
 
-    # Update any base URLs or webhooks to use the public ngrok URL
     settings.BASE_URL = public_url
     init_webhooks(public_url)
 
@@ -56,7 +51,7 @@ current_datetime = current_datetime_utc + timedelta(hours=7)
 date_str = current_datetime.strftime('%Y-%m-%d')
 time_str = current_datetime.strftime('%H:%M:%S')
 
-cred = credentials.Certificate("../credentials.json")
+cred = credentials.Certificate("...")
 firebase_admin.initialize_app(cred, {
                                     "databaseURL": "..."
                                     })
@@ -65,20 +60,8 @@ firebase_admin.initialize_app(cred, {
 async def root():
     return {"message": "It's Working fine"}
 
-
 def get_wallet_reference(wallet_name):
     return db.reference(f"/wallet_id/{wallet_name}")
-
-
-def get_all_wallet_balances():
-    wallet_ref = db.reference("/wallet_id")
-    wallets = wallet_ref.get()
-
-    if wallets:
-        return wallets
-    else:
-        return {}
-
 
 def get_transactions_by_date(date):
     transactions_ref = db.reference("/transactions")
@@ -94,41 +77,43 @@ def get_transactions_reference():
     return db.reference("/transactions")
 
 
-@app.get("/api/v5/check/wallet-balance")
+@app.get("/api/v5/check/wallet-balance/{wallet_name}")
 async def wallet_balance(
     wallet_name: str,
-    token: str
+    token: str = Query(..., description="API Key")
 ):
     if token and token in api_key:
-        wallet_ref = get_wallet_reference(wallet_name)
-        value = wallet_ref.get()
-
+        value = db.reference(f"/wallet_id/{wallet_name}").get()
+        
         if value:
-            return {"date": f'2023-10-01 --> {date_str}', "value": value}
+            return {"date": date_str, "value": value}
         
         raise HTTPException(status_code=404, detail="No value available yet")
     raise HTTPException(status_code=401, detail="Invalid API key")
 
 
-@app.get("/api/v5/check/wallet-balance/all")
+@app.get("/api/v5/check/wallet-balance")
 async def all_wallet_balances(
-    token: Union[str, None] = Query(default=None, max_length=50)
-):
-    if token and token in api_key:
+    token: str = Query(..., description="API Key")
+):  
 
-        value = get_all_wallet_balances()
+    if token and token in api_key:
+ 
+        value = db.reference("/wallet_id").get()
 
         if value:
-            return {"date": f'2023-01-01 --> {date_str}', "value": value, "sum": str(round(sum(value.values()), 2)) + " Baht"}
-        
-        raise HTTPException(status_code=404, detail="No value available yet")
-    raise HTTPException(status_code=401, detail="Invalid API key")
-
+            return {"date": date_str, "value": value, "sum": str(round(sum(value.values()), 2)) + " Baht"}
+        else:
+            raise HTTPException(status_code=404, detail="No value available yet")
+    else:
+        print("Invalid API key")
+        raise HTTPException(status_code=401, detail="Invalid API key")
 
 @app.get("/api/v5/check/transaction/{date}")
 async def transactions_by_date(
     date: str,
-    token: str
+    token: str = Query(..., description="API Key")
+
 ):
     if token and token in api_key:
 
@@ -153,7 +138,7 @@ async def income(
     wallet_name: str,
     money: str, 
     types: str, 
-    token: str,
+    token: str = Query(..., description="API Key"),
     description: Optional[str] = None
 ):
     
@@ -188,7 +173,7 @@ async def income(
             for transaction_id, transaction in date_entry.items():
             
                 if transaction['action'] == 'income' and transaction['types'] == types:
-
+                    
                     ls.append(float(transaction['amount']))
 
             transaction_data['add_on'] = sum(ls) + money
@@ -211,7 +196,7 @@ async def expense(
     wallet_name: str,
     money: str,
     types: str,
-    token: str,
+    token: str = Query(..., description="API Key"),
     description: Optional[str] = None
 ):
     
@@ -272,7 +257,7 @@ async def transfer_funds(
     origin_wallet_name: str,
     destination_wallet_name: str,
     money: float,
-    token: str = Query(default=None, max_length=50),
+    token: str = Query(..., description="API Key"),
     description: str = None,
 ):
     if token not in api_key:
