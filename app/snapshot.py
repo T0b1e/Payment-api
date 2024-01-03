@@ -5,7 +5,7 @@ from firebase_admin import db
 import time
 import requests
 
-cred = credentials.Certificate('...')
+cred = credentials.Certificate('credentials.json')
 
 app = firebase_admin.initialize_app(cred, {
     'databaseURL': '...'
@@ -17,8 +17,10 @@ def on_snapshot(event):
 
     raw_data = event.data
 
-    if raw_data['action'] and raw_data['wallet'] and raw_data['wallet_after_balance'] and raw_data['types'] and raw_data['add_on']:
+    print(raw_data)
 
+    if 'action' in raw_data and 'add_on' in raw_data and 'types' in raw_data and 'wallet' in raw_data and 'wallet_after_balance' in raw_data:
+        
         payload = {
             'action': raw_data['action'],
             'wallet_id': raw_data['wallet'], 

@@ -188,13 +188,11 @@ async def income(
             for transaction_id, transaction in date_entry.items():
             
                 if transaction['action'] == 'income' and transaction['types'] == types:
-                    ls.append(float(transaction['amount']))
 
-            print(ls)
+                    ls.append(float(transaction['amount']))
 
             transaction_data['add_on'] = sum(ls) + money
             transaction_data['wallet_after_balance'] = new_wallet_value
-            print(transaction_data)
             transactions_ref.child(date_str).push(transaction_data)
 
             return {"date": date_str, "value": {"wallet balance": new_wallet_value, "amount": money, "add on": sum(ls) + money}}
@@ -208,7 +206,7 @@ async def income(
     raise HTTPException(status_code=401, detail="Invalid API keys")
 
 
-@app.post("/api/v5/expense")
+@app.post("/api/v5/expense/{types}")
 async def expense(
     wallet_name: str,
     money: str,
@@ -224,11 +222,11 @@ async def expense(
     if token in api_key:
 
         wallet_ref = get_wallet_reference(wallet_name)
-        print('1')
+
         current_wallet_value = wallet_ref.get()
         new_wallet_value = current_wallet_value - money
         wallet_ref.set(new_wallet_value)
-        print('2')
+        
         transaction_data = {
             'timestamp': time_str,
             'action': "expense",
@@ -239,22 +237,20 @@ async def expense(
             'add_on': 0, 
             'description': description
         }
-        print('3')
+
         transactions_ref = db.reference('/transactions')
-        print('4')
+
         date_entry = transactions_ref.child(date_str).get()
-        print('5')
+
         ls = []
 
         if date_entry is not None: # date exits
-            print('1231231231312313123123')
+
             for transaction_id, transaction in date_entry.items():
 
                 if transaction['action'] == 'expense' and transaction['types'] == types:
 
                     ls.append(float(transaction['amount']))
-
-            print(ls)
 
             transaction_data['add_on'] = sum(ls) + money
             transaction_data['wallet_after_balance'] = new_wallet_value
@@ -262,7 +258,6 @@ async def expense(
 
             return {"date": date_str, "value": {"wallet balance": new_wallet_value, "amount": money, "add on": sum(ls) + money}}
             
-        print('hahahahahahahhahahahahah')    
         transaction_data['add_on'] = money
         transaction_data['wallet_after_balance'] = new_wallet_value
         transactions_ref.child(date_str).push(transaction_data)
