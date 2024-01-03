@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.security import OAuth2PasswordBearer
+from fastapi.logger import logger
 import uvicorn
 
 import firebase_admin
@@ -8,15 +9,45 @@ from firebase_admin import db, credentials
 from datetime import datetime, timedelta
 
 from typing import Union, Optional
+from pydantic_settings import BaseSettings
 
 import dotenv
 import os
+import sys
 
-dotenv.load_dotenv('...')
+
+dotenv.load_dotenv('../keys.env')
 
 api_key = os.getenv('API_KEY')
 
+class Settings(BaseSettings):
+
+    BASE_URL: str = "http://localhost:8000"
+    USE_NGROK: bool = os.environ.get("USE_NGROK", "False") == "True"
+
+settings = Settings()
+
+def init_webhooks(base_url):
+    pass
+
 app = FastAPI()
+
+if settings.USE_NGROK:
+    # pyngrok should only ever be installed or initialized in a dev environment when this flag is set
+    from pyngrok import ngrok
+
+    # Get the dev server port (defaults to 8000 for Uvicorn, can be overridden with `--port`
+    # when starting the server
+    port = sys.argv[sys.argv.index("--port") + 1] if "--port" in sys.argv else "8000"
+
+    # Open a ngrok tunnel to the dev server
+    public_url = ngrok.connect(port).public_url
+    logger.info("ngrok tunnel \"{}\" -> \"http://127.0.0.1:{}\"".format(public_url, port))
+
+    # Update any base URLs or webhooks to use the public ngrok URL
+    settings.BASE_URL = public_url
+    init_webhooks(public_url)
+
 
 current_datetime_utc = datetime.utcnow()
 
@@ -25,7 +56,7 @@ current_datetime = current_datetime_utc + timedelta(hours=7)
 date_str = current_datetime.strftime('%Y-%m-%d')
 time_str = current_datetime.strftime('%H:%M:%S')
 
-cred = credentials.Certificate("...")
+cred = credentials.Certificate("../credentials.json")
 firebase_admin.initialize_app(cred, {
                                     "databaseURL": "..."
                                     })
@@ -120,79 +151,24 @@ async def transactions_by_date(
 @app.post("/api/v5/income/{types}")
 async def income(
     wallet_name: str,
-    money: float, 
+    money: str, 
     types: str, 
     token: str,
     description: Optional[str] = None
 ):
-    if token in api_key:
-        wallet_ref = get_wallet_reference(wallet_name)
-
-        current_wallet_value = wallet_ref.get()
-        new_wallet_value = current_wallet_value + money
-        wallet_ref.set(new_wallet_value)
-
-        transaction_data = {
-        'timestamp': time_str,
-        'action': "income", 
-        'wallet': wallet_name, 
-        'wallet_after_balance': new_wallet_value,
-        'types': types, 
-        'amount': money,
-        'add_on': 0,  # reduce queary method
-        'description': description 
-        }
-
-        transactions_ref = db.reference('/transactions')
-
-        date_entry = transactions_ref.child(date_str).get()
-
-        ls = []
-
-        if date_entry is not None: # date exits
-
-            for transaction_id, transaction in date_entry.items():
-
-                if transaction['action'] == 'expense' and transaction['types'] == types:
-
-                    ls.append(float(transaction['amount']))
-
-            transaction_data['add_on'] = sum(ls) + money
-            transaction_data['wallet_after_balance'] = new_wallet_value
-            transactions_ref.child(date_str).push(transaction_data)
-
-            return {"date": date_str, "value": {"wallet balance": new_wallet_value, "amount": money, "add on": sum(ls) + money}}
-            
-        transaction_data['add_on'] = money
-        transaction_data['wallet_after_balance'] = new_wallet_value
-        transactions_ref.child(date_str).push(transaction_data)
-            
-        return {"date": date_str, "value": {"wallet balance": new_wallet_value, "amount": money, "add on": money}}
     
-    raise HTTPException(status_code=401, detail="Invalid API keys")
-
-
-@app.post("/api/v5/expense/{types}")
-async def expense(
-    wallet_name: str,
-    money: float,
-    types: str,
-    token: str,
-    description: Optional[str] = None
-):
-    ls = []
+    money = float(money)
 
     if token in api_key:
-
+        
         wallet_ref = get_wallet_reference(wallet_name)
-
         current_wallet_value = wallet_ref.get()
         new_wallet_value = current_wallet_value - money
         wallet_ref.set(new_wallet_value)
 
         transaction_data = {
             'timestamp': time_str,
-            'action': "expense",
+            'action': "income",
             'wallet': wallet_name,
             'wallet_after_balance': new_wallet_value,
             'types': types,
@@ -210,10 +186,75 @@ async def expense(
         if date_entry is not None: # date exits
 
             for transaction_id, transaction in date_entry.items():
+            
+                if transaction['action'] == 'income' and transaction['types'] == types:
+                    ls.append(float(transaction['amount']))
+
+            print(ls)
+
+            transaction_data['add_on'] = sum(ls) + money
+            transaction_data['wallet_after_balance'] = new_wallet_value
+            print(transaction_data)
+            transactions_ref.child(date_str).push(transaction_data)
+
+            return {"date": date_str, "value": {"wallet balance": new_wallet_value, "amount": money, "add on": sum(ls) + money}}
+        
+        transaction_data['add_on'] = money
+        transaction_data['wallet_after_balance'] = new_wallet_value
+        transactions_ref.child(date_str).push(transaction_data)
+            
+        return {"date": date_str, "value": {"wallet balance": new_wallet_value, "amount": money, "add on": money}}
+    
+    raise HTTPException(status_code=401, detail="Invalid API keys")
+
+
+@app.post("/api/v5/expense")
+async def expense(
+    wallet_name: str,
+    money: str,
+    types: str,
+    token: str,
+    description: Optional[str] = None
+):
+    
+    money = float(money)
+
+    ls = []
+
+    if token in api_key:
+
+        wallet_ref = get_wallet_reference(wallet_name)
+        print('1')
+        current_wallet_value = wallet_ref.get()
+        new_wallet_value = current_wallet_value - money
+        wallet_ref.set(new_wallet_value)
+        print('2')
+        transaction_data = {
+            'timestamp': time_str,
+            'action': "expense",
+            'wallet': wallet_name,
+            'wallet_after_balance': new_wallet_value,
+            'types': types,
+            'amount': money,
+            'add_on': 0, 
+            'description': description
+        }
+        print('3')
+        transactions_ref = db.reference('/transactions')
+        print('4')
+        date_entry = transactions_ref.child(date_str).get()
+        print('5')
+        ls = []
+
+        if date_entry is not None: # date exits
+            print('1231231231312313123123')
+            for transaction_id, transaction in date_entry.items():
 
                 if transaction['action'] == 'expense' and transaction['types'] == types:
 
                     ls.append(float(transaction['amount']))
+
+            print(ls)
 
             transaction_data['add_on'] = sum(ls) + money
             transaction_data['wallet_after_balance'] = new_wallet_value
@@ -221,7 +262,7 @@ async def expense(
 
             return {"date": date_str, "value": {"wallet balance": new_wallet_value, "amount": money, "add on": sum(ls) + money}}
             
-                
+        print('hahahahahahahhahahahahah')    
         transaction_data['add_on'] = money
         transaction_data['wallet_after_balance'] = new_wallet_value
         transactions_ref.child(date_str).push(transaction_data)
@@ -295,6 +336,8 @@ async def transfer_funds(
 # @app.post("/api/v1/modify") TODO
 
 
+# uvicorn main:app --reload --host 0.0.0.0 --port 8000
+    
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
