@@ -5,13 +5,21 @@ from firebase_admin import db
 import time
 import requests
 
-cred = credentials.Certificate('credentials.json')
+import dotenv
+import os
+
+dotenv.load_dotenv('./keys.env')
+
+# scripts_url = os.getenv('APPSCRIPTS_URL')
+scripts_url = '...'
+
+cred = credentials.Certificate('./credentials.json')
 
 app = firebase_admin.initialize_app(cred, {
     'databaseURL': '...'
 })
 
-transactions_ref = db.reference("transactions")
+transactions_ref = db.reference("/transactions")
 
 def on_snapshot(event):
 
@@ -29,9 +37,7 @@ def on_snapshot(event):
             'rawAmount': raw_data['add_on']
         }
         
-        script_url = "https://script.google.com/macros/s/AKfycbyq8p3X529rM5FusrKmLwDUnEUoxRgnMfZcKP5dGRcnESHQupJtStkXkuPv6I3qluaL/exec"
-    
-        response = requests.get(script_url, params = payload)
+        response = requests.get(scripts_url, params = payload)
         
         if response.status_code == 200:
 
