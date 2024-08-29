@@ -27,38 +27,9 @@ dotenv.load_dotenv('./keys.env')
 api_key = os.getenv('API_KEY')
 db_url = os.getenv('FIREBASE_CREDENTIALS')
 
-class Settings(BaseSettings):
-
-    BASE_URL: ClassVar[HttpUrl] = "http://localhost:8000"
-    USE_NGROK: ClassVar[bool] = os.environ.get("USE_NGROK", "False") == "True"
-
-
-settings = Settings()
-
-
-def init_webhooks(base_url):
-    pass
-
 app = FastAPI()
 
-if settings.USE_NGROK:
-    # pyngrok should only ever be installed or initialized in a dev environment when this flag is set
-    from pyngrok import ngrok
-
-    # Get the dev server port (defaults to 8000 for Uvicorn, can be overridden with `--port`
-    # when starting the server
-    port = sys.argv[sys.argv.index("--port") + 1] if "--port" in sys.argv else "8000"
-
-    # Open a ngrok tunnel to the dev server
-    public_url = ngrok.connect(port).public_url
-    logger.info("ngrok tunnel \"{}\" -> \"http://127.0.0.1:{}\"".format(public_url, port))
-
-    # Update any base URLs or webhooks to use the public ngrok URL
-    settings.BASE_URL = public_url
-    init_webhooks(public_url)
-
 current_datetime_utc = datetime.utcnow()
-
 current_datetime = current_datetime_utc + timedelta(hours=7)
 
 date_str = current_datetime.strftime('%Y-%m-%d')
