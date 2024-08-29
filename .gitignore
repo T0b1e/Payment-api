@@ -1,6 +1,5 @@
 *.json
 *.xlsx
-*.txt
 *.env
 
 /.idea

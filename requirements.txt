@@ -93,3 +93,5 @@ watchfiles==0.18.1
 websockets==10.4
 Werkzeug==2.2.2
 zipp==3.8.1
+setuptools>=65.5.0
+pkg_resources>=0.0.0
