@@ -64,9 +64,10 @@ current_datetime = current_datetime_utc + timedelta(hours=7)
 date_str = current_datetime.strftime('%Y-%m-%d')
 time_str = current_datetime.strftime('%H:%M:%S')
 
-cred = credentials.Certificate("./credentials.json")
+cred_path = os.path.join(os.path.dirname(__file__), 'credentials.json')
+cred = credentials.Certificate(cred_path)
 firebase_admin.initialize_app(cred, {
-                                    "databaseURL": '...'
+                                    "databaseURL": db_url
                                     })
 
 @app.get("/")
@@ -202,7 +203,6 @@ async def income(
         return {"date": date_str, "value": {"wallet balance": new_wallet_value, "amount": money, "add on": money}}
     
     raise HTTPException(status_code=401, detail="Invalid API keys")
-
 
 @app.post("/api/v5/expense/{types}")
 async def expense(

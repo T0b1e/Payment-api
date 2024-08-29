@@ -10,13 +10,13 @@ import os
 
 dotenv.load_dotenv('./keys.env')
 
-# scripts_url = os.getenv('APPSCRIPTS_URL')
-scripts_url = '...'
+db_url = os.getenv('DB_URL')
+
 
 cred = credentials.Certificate('./credentials.json')
 
 app = firebase_admin.initialize_app(cred, {
-    'databaseURL': '...'
+    'databaseURL': db_url
 })
 
 transactions_ref = db.reference("/transactions")
