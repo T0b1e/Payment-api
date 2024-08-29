@@ -25,7 +25,7 @@ import sys
 dotenv.load_dotenv('./keys.env')
 
 api_key = os.getenv('API_KEY')
-db_url = os.getenv('DB_URL')
+db_url = os.getenv('FIREBASE_CREDENTIALS')
 
 class Settings(BaseSettings):
 
