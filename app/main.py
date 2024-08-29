@@ -36,10 +36,11 @@ date_str = current_datetime.strftime('%Y-%m-%d')
 time_str = current_datetime.strftime('%H:%M:%S')
 
 cred_path = os.path.join(os.path.dirname(__file__), 'credentials.json')
-cred = credentials.Certificate(cred_path)
+cred = credentials.Certificate('app/credentials.json')
 firebase_admin.initialize_app(cred, {
                                     "databaseURL": db_url
                                     })
+print("--Ready--")
 
 @app.get("/")
 async def root():
@@ -303,7 +304,7 @@ async def transfer_funds(
 # uvicorn main:app --reload --host 0.0.0.0 --port 8000
     
 
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+#if __name__ == "__main__":
+#    uvicorn.run(app, host="0.0.0.0", port=8000)
 
 
