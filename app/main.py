@@ -22,7 +22,7 @@ import os
 dotenv.load_dotenv('./keys.env')
 
 api_key = os.getenv('API_KEY')
-db_url = os.getenv('FIREBASE_CREDENTIALS')
+db_url = os.getenv('FIREBASE_URL')
 
 app = FastAPI()
 
@@ -54,6 +54,7 @@ def load_credentials():
 try:
     cred_data = load_credentials()
     cred = credentials.Certificate(cred_data) 
+    print(db_url)
     firebase_admin.initialize_app(cred, {
                                     "databaseURL": db_url
                                     })
