@@ -1,25 +1,22 @@
 from fastapi import FastAPI, Depends, HTTPException, Query
+import requests
+
 # from fastapi.security import OAuth2PasswordBearer
-from fastapi.logger import logger
-
-from pydantic import HttpUrl
-from typing import ClassVar
-
-from pydantic_settings import BaseSettings
-from pyngrok import ngrok
-
-import uvicorn
+# from fastapi.logger import logger
+# from pydantic import HttpUrl
+# from typing import ClassVar
+# from pydantic_settings import BaseSettings
+# from pyngrok import ngrok
+# import uvicorn
 
 import firebase_admin
 from firebase_admin import db, credentials
 
 from datetime import datetime, timedelta
-
 from typing import Optional
-
+import json
 import dotenv
 import os
-import sys
 
 
 dotenv.load_dotenv('./keys.env')
@@ -36,13 +33,37 @@ date_str = current_datetime.strftime('%Y-%m-%d')
 time_str = current_datetime.strftime('%H:%M:%S')
 
 # cred_path = os.path.join(os.path.dirname(__file__), 'credentials.json')
-credentails_from_env = os.getenv('CREDENTIALS')
+# credentails_from_env = os.getenv('CREDENTIALS')
+# URL to your hosted JSON file (ensure this is publicly accessible or has correct auth headers)
 
-cred = credentials.Certificate(credentails_from_env)
-firebase_admin.initialize_app(cred, {
+def load_credentials():
+    if 'DYNO' in os.environ:
+        credentails_from_env = os.getenv('CREDENTIALS')
+        if credentails_from_env:
+            return json.loads(credentails_from_env)
+        else:
+            raise ValueError("Environment variable 'CREDENTIALS' is missing.")
+    else:
+        cred_file_path = os.path.join(os.path.dirname(__file__), 'credentials.json')
+        if os.path.exists(cred_file_path):
+            with open(cred_file_path, 'r') as f:
+                return json.load(f)
+        else:
+            raise FileNotFoundError(f"cred.json file not found at {cred_file_path}. Ensure it's present for local development.")
+
+try:
+    cred_data = load_credentials()
+    cred = credentials.Certificate(cred_data) 
+    firebase_admin.initialize_app(cred, {
                                     "databaseURL": db_url
                                     })
+
+except (FileNotFoundError, ValueError) as e:
+    print(f"Error: {e}")
+
+
 print("--Ready--")
+
 
 @app.get("/")
 async def root():
