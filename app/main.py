@@ -35,8 +35,10 @@ current_datetime = current_datetime_utc + timedelta(hours=7)
 date_str = current_datetime.strftime('%Y-%m-%d')
 time_str = current_datetime.strftime('%H:%M:%S')
 
-cred_path = os.path.join(os.path.dirname(__file__), 'credentials.json')
-cred = credentials.Certificate('app/credentials.json')
+# cred_path = os.path.join(os.path.dirname(__file__), 'credentials.json')
+credentails_from_env = os.getenv('CREDENTIALS')
+
+cred = credentials.Certificate(credentails_from_env)
 firebase_admin.initialize_app(cred, {
                                     "databaseURL": db_url
                                     })
