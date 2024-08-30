@@ -38,9 +38,9 @@ time_str = current_datetime.strftime('%H:%M:%S')
 
 def load_credentials():
     if 'DYNO' in os.environ:
-        credentails_from_env = os.getenv('CREDENTIALS')
-        if credentails_from_env:
-            return json.loads(credentails_from_env)
+        credentials_from_env = os.getenv('CREDENTIALS')
+        if credentials_from_env:
+            return json.loads(credentials_from_env)
         else:
             raise ValueError("Environment variable 'CREDENTIALS' is missing.")
     else:
