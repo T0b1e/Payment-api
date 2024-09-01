@@ -16,6 +16,7 @@ from firebase_admin import db, credentials
 
 from datetime import datetime, timedelta
 from typing import Optional
+import urllib.parse
 import json
 import dotenv
 import os
@@ -65,9 +66,6 @@ except (FileNotFoundError, ValueError) as e:
     print(f"Error: {e}")
 
 
-print("--Ready--")
-
-
 @app.get("/")
 async def root():
     return {"message": "It's Working fine"}
@@ -90,6 +88,17 @@ def get_transactions_by_date(date):
 def get_transactions_reference():
     return db.reference("/transactions")
 
+
+def from_eng_to_thai(types):
+    mapping = {
+    "snacks": "ขนม/น้ำดื่ม",
+    "sports": "อุปกรณ์การศึกษา/กีฬา",
+    "furnitures": "หอพัก/เฟอร์นิเจอร์",
+    "Clothings": "เครื่องนุ่งห่ม/เครื่องสำอาง",
+    "invertment": "ลงทุน (เงินส่วนตัว)"
+    }
+
+    return mapping.get(types, types)
 
 async def push_data_to_google_sheets(transaction_data):
     
@@ -177,7 +186,6 @@ async def income(
     token: str = Query(..., description="API Key"),
     description: Optional[str] = None
 ):
-    
     money = float(money)
 
     if token in api_key:
@@ -239,8 +247,8 @@ async def expense(
     token: str = Query(..., description="API Key"),
     description: Optional[str] = None
 ):
-    
     money = float(money)
+    types_in_thai = from_eng_to_thai(types)
 
     ls = []
 
@@ -257,7 +265,7 @@ async def expense(
             'action': "expense",
             'wallet': wallet_name,
             'wallet_after_balance': new_wallet_value,
-            'types': types,
+            'types': types_in_thai,
             'amount': money,
             'add_on': 0, 
             'description': description
@@ -273,13 +281,15 @@ async def expense(
 
             for transaction_id, transaction in date_entry.items():
 
-                if transaction['action'] == 'expense' and transaction['types'] == types:
+                if transaction['action'] == 'expense' and transaction['types'] == types_in_thai:
 
                     ls.append(float(transaction['amount']))
 
             transaction_data['add_on'] = sum(ls) + money
             transaction_data['wallet_after_balance'] = new_wallet_value
             transactions_ref.child(date_str).push(transaction_data)
+
+            transaction_data["types"] = types # Change Lang to pushing into google sheet api 
 
             background_tasks.add_task(push_data_to_google_sheets, transaction_data)
 
@@ -288,6 +298,8 @@ async def expense(
         transaction_data['add_on'] = money
         transaction_data['wallet_after_balance'] = new_wallet_value
         transactions_ref.child(date_str).push(transaction_data)
+
+        transaction_data["types"] = types # Change Lang to pushing into google sheet api 
 
         background_tasks.add_task(push_data_to_google_sheets, transaction_data)
             
