@@ -60,7 +60,10 @@ if response.status_code == 200:
 else:
     print("Error! Status Code:", response.status_code)
     print("Response Text:", response.text)
-"""transactions_ref.listen(on_snapshot)
+
+"""
+# TODO
+transactions_ref.listen(on_snapshot)
 
 try:
     while True:
