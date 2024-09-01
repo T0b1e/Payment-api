@@ -11,7 +11,7 @@ import os
 dotenv.load_dotenv('./keys.env')
 
 db_url = os.getenv('DB_URL')
-
+scripts_url = os.getenv('APPSCRIPTS_URL')
 
 cred = credentials.Certificate('./credentials.json')
 
@@ -51,8 +51,16 @@ def on_snapshot(event):
 
         pass
        
-    
-transactions_ref.listen(on_snapshot)
+response = requests.get(scripts_url)
+
+if response.status_code == 200:
+
+    print("Success! Response:", response.json())
+
+else:
+    print("Error! Status Code:", response.status_code)
+    print("Response Text:", response.text)
+"""transactions_ref.listen(on_snapshot)
 
 try:
     while True:
@@ -61,3 +69,4 @@ try:
 except KeyboardInterrupt:
     print("Program terminated by user.")
     firebase_admin.delete_app(app)
+"""

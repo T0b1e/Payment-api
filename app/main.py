@@ -1,5 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Query
-import requests
+from fastapi import FastAPI, Depends, HTTPException, Query, BackgroundTasks
 
 # from fastapi.security import OAuth2PasswordBearer
 # from fastapi.logger import logger
@@ -8,6 +7,9 @@ import requests
 # from pydantic_settings import BaseSettings
 # from pyngrok import ngrok
 # import uvicorn
+
+import httpx
+import requests
 
 import firebase_admin
 from firebase_admin import db, credentials
@@ -22,6 +24,7 @@ import os
 dotenv.load_dotenv('./keys.env')
 
 api_key = os.getenv('API_KEY')
+scripts_url = os.getenv('APPSCRIPTS_URL')
 db_url = os.getenv('FIREBASE_URL')
 
 app = FastAPI()
@@ -54,7 +57,6 @@ def load_credentials():
 try:
     cred_data = load_credentials()
     cred = credentials.Certificate(cred_data) 
-    print(db_url)
     firebase_admin.initialize_app(cred, {
                                     "databaseURL": db_url
                                     })
@@ -70,8 +72,10 @@ print("--Ready--")
 async def root():
     return {"message": "It's Working fine"}
 
+
 def get_wallet_reference(wallet_name):
     return db.reference(f"/wallet_id/{wallet_name}")
+
 
 def get_transactions_by_date(date):
     transactions_ref = db.reference("/transactions")
@@ -87,6 +91,26 @@ def get_transactions_reference():
     return db.reference("/transactions")
 
 
+async def push_data_to_google_sheets(transaction_data):
+    
+    params = {
+        "action": transaction_data['action'],
+        "wallet_id": transaction_data['wallet'],
+        "wallet_after_balance": transaction_data['wallet_after_balance'],
+        "types": transaction_data['types'],
+        "rawAmount": transaction_data['add_on']
+    }
+
+    async with httpx.AsyncClient() as client:
+        response = await client.get(scripts_url, params=params, follow_redirects=True)
+        
+        if response.status_code == 200:
+            print("Success! Response:", response.json())
+        else:
+            print(f"Error! Status Code: {response.status_code}")
+            print(f"Response Text: {response.text}")
+
+
 @app.get("/api/v5/check/wallet-balance/{wallet_name}")
 async def wallet_balance(
     wallet_name: str,
@@ -96,6 +120,7 @@ async def wallet_balance(
         value = db.reference(f"/wallet_id/{wallet_name}").get()
         
         if value:
+            # call to push data into googlesheet 
             return {"date": date_str, "value": value}
         
         raise HTTPException(status_code=404, detail="No value available yet")
@@ -148,6 +173,7 @@ async def income(
     wallet_name: str,
     money: str, 
     types: str, 
+    background_tasks: BackgroundTasks,
     token: str = Query(..., description="API Key"),
     description: Optional[str] = None
 ):
@@ -190,11 +216,15 @@ async def income(
             transaction_data['wallet_after_balance'] = new_wallet_value
             transactions_ref.child(date_str).push(transaction_data)
 
+            background_tasks.add_task(push_data_to_google_sheets, transaction_data)
+
             return {"date": date_str, "value": {"wallet balance": new_wallet_value, "amount": money, "add on": sum(ls) + money}}
         
         transaction_data['add_on'] = money
         transaction_data['wallet_after_balance'] = new_wallet_value
         transactions_ref.child(date_str).push(transaction_data)
+
+        background_tasks.add_task(push_data_to_google_sheets, transaction_data)
             
         return {"date": date_str, "value": {"wallet balance": new_wallet_value, "amount": money, "add on": money}}
     
@@ -205,6 +235,7 @@ async def expense(
     wallet_name: str,
     money: str,
     types: str,
+    background_tasks: BackgroundTasks,
     token: str = Query(..., description="API Key"),
     description: Optional[str] = None
 ):
@@ -250,11 +281,15 @@ async def expense(
             transaction_data['wallet_after_balance'] = new_wallet_value
             transactions_ref.child(date_str).push(transaction_data)
 
+            background_tasks.add_task(push_data_to_google_sheets, transaction_data)
+
             return {"date": date_str, "value": {"wallet balance": new_wallet_value, "amount": money, "add on": sum(ls) + money}}
             
         transaction_data['add_on'] = money
         transaction_data['wallet_after_balance'] = new_wallet_value
         transactions_ref.child(date_str).push(transaction_data)
+
+        background_tasks.add_task(push_data_to_google_sheets, transaction_data)
             
         return {"date": date_str, "value": {"wallet balance": new_wallet_value, "amount": money, "add on": money}}
 
