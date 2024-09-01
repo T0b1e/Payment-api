@@ -19,18 +19,29 @@ function doGet(e) {
     const action = params.action;
     const walletName = params.wallet_id;
     const walletAfterAdded = params.wallet_after_balance;
-    const types = params.types;
+    let types = params.types;
+
+    types = types === "snacks" ? "ขนม/น้ำดื่ม" :
+            types === "sports" ? "อุปกรณ์การศึกษา/กีฬา" :
+            types === "furnitures" ? "หอพัก/เฟอร์นิเจอร์" :
+            types === "clothings" ? "เครื่องนุ่งห่ม/เครื่องสำอาง" :
+            types === "investment" ? "ลงทุน (เงินส่วนตัว)":
+            types;
+
     const rawAmount = parseFloat(params.rawAmount) || 0;
+    const description = params.descriptions;
 
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(month);
 
     let resText = "";
 
     if (action === "income" || action === "expense") {
-      resText = JSON.stringify(handleTransaction(sheet, walletName, walletAfterAdded, types, rawAmount, day, action));
+      resText = JSON.stringify(handleTransaction(sheet, walletName, walletAfterAdded, types, rawAmount, day, action, description));
     } 
     
     const response =  resText ? JSON.parse(resText) : ""
+
+    console.log(response)
 
     return ContentService
       .createTextOutput(JSON.stringify(response))
@@ -56,7 +67,7 @@ function setCellValue(sheet, row, day, value) {
   sheet.getRange(row, day).setValue(value);
 }
 
-function handleTransaction(sheet, walletName, walletAfterAdded, types, rawAmount, day, action) {
+function handleTransaction(sheet, walletName, walletAfterAdded, types, rawAmount, day, action, description) {
     const typeRow = findRow(action, types);
     const walletRow = findWalletRow(walletName);
 
@@ -65,7 +76,9 @@ function handleTransaction(sheet, walletName, walletAfterAdded, types, rawAmount
         const updatedTypeValue = rawAmount;
         const updatedWalletValue = walletAfterAdded;
 
-        sheet.getRange(typeRow, day).setValue(updatedTypeValue);
+        // sheet.getRange(typeRow, day).setValue(updatedTypeValue);
+        // sheet.getRange(typeRow + 1, day).setValue(description);
+        sheet.getRange(typeRow, day).setValue(updatedTypeValue).offset(1, 0).setValue(description);
         sheet.getRange(walletRow, day).setValue(updatedWalletValue);
 
         return {
@@ -112,29 +125,29 @@ function findWalletRow(walletName) {
 function findIncomeTypeRow(incomeType) {
   switch (incomeType) {
     case "เงินเดือน": return 13;
-    case "รายได้": return 14;
-    case "ได้รับ": return 15;
-    case "อื่นๆ": return 16;
+    case "รายได้": return 15;
+    case "ได้รับ": return 17;
+    case "อื่นๆ": return 19;
     default: return null;
   }
 }
 
 function findExpenseTypeRow(expenseType) {
   switch (expenseType) {
-    case "ข้าวเช้า": return 19;
-    case "ข้าวเที่ยง": return 20;
-    case "ข้าวเย็น": return 21;
-    case "ขนม/น้ำดื่ม": return 22;
-    case "ร้านสะดวกซื้อ": return 23;
-    case "ค่าเดินทาง": return 24;
-    case "อุปกรณ์การศึกษา/กีฬา": return 25;
-    case "ของเล่น": return 26;
-    case "ค่าสังสรรค์": return 27;
-    case "อุปกรณ์ไฟฟ้า": return 28;
-    case "หอพัก/เฟอร์นิเจอร์": return 29;
-    case "เครื่องนุ่งห่ม/เครื่องสำอาง": return 30;
-    case "ลงทุน": return 31;
-    case "อื่นๆ": return 32;
+    case "ข้าวเช้า": return 23;
+    case "ข้าวเที่ยง": return 25;
+    case "ข้าวเย็น": return 27;
+    case "ขนม/น้ำดื่ม": return 29;
+    case "ร้านสะดวกซื้อ": return 31;
+    case "ค่าเดินทาง": return 33;
+    case "อุปกรณ์การศึกษา/กีฬา": return 35;
+    case "ของเล่น": return 37;
+    case "ค่าสังสรรค์": return 39;
+    case "อุปกรณ์ไฟฟ้า": return 41;
+    case "หอพัก/เฟอร์นิเจอร์": return 43;
+    case "เครื่องนุ่งห่ม/เครื่องสำอาง": return 45;
+    case "ลงทุน": return 47;
+    case "อื่นๆ": return 49;
     default: return null;
   }
 }
@@ -143,10 +156,11 @@ function testDoGet() {
       e = {
         'parameter': {
             'action': 'income',
-            'wallet_id': 'SCB',
-            'types': 'เงินเดือน',
+            'wallet_id': 'BLB',
+            'types': 'ได้รับ',
             'rawAmount': 100.0,
             'wallet_after_balance': 1500.0,
+            'descriptions': 'test test',
         }
     }
   doGet(e);

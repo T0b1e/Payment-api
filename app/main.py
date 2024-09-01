@@ -109,7 +109,8 @@ async def push_data_to_google_sheets(transaction_data):
         "wallet_id": transaction_data['wallet'],
         "wallet_after_balance": transaction_data['wallet_after_balance'],
         "types": transaction_data['types'],
-        "rawAmount": transaction_data['add_on']
+        "rawAmount": transaction_data['add_on'],
+        "descriptions": transaction_data['descriptions']
     }
 
     async with httpx.AsyncClient() as client:
@@ -205,7 +206,7 @@ async def income(
             'types': types,
             'amount': money,
             'add_on': 0, 
-            'description': description
+            'descriptions': description
         }
 
         transactions_ref = db.reference('/transactions')
@@ -270,7 +271,7 @@ async def expense(
             'types': types_in_thai,
             'amount': money,
             'add_on': 0, 
-            'description': description
+            'descriptions': description
         }
 
         transactions_ref = db.reference('/transactions')
