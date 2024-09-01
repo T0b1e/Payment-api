@@ -89,13 +89,15 @@ def get_transactions_reference():
     return db.reference("/transactions")
 
 
+ # TODO !!! Typo invertment != invesment !!!
+
 def from_eng_to_thai(types):
     mapping = {
     "snacks": "ขนม/น้ำดื่ม",
     "sports": "อุปกรณ์การศึกษา/กีฬา",
     "furnitures": "หอพัก/เฟอร์นิเจอร์",
     "clothings": "เครื่องนุ่งห่ม/เครื่องสำอาง",
-    "invertment": "ลงทุน (เงินส่วนตัว)"
+    "investment": "ลงทุน (เงินส่วนตัว)" 
     }
 
     return mapping.get(types, types)
