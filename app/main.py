@@ -1,13 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException, Query, BackgroundTasks
 
-# from fastapi.security import OAuth2PasswordBearer
-# from fastapi.logger import logger
-# from pydantic import HttpUrl
-# from typing import ClassVar
-# from pydantic_settings import BaseSettings
-# from pyngrok import ngrok
-# import uvicorn
-
 import httpx
 import requests
 
@@ -21,9 +13,16 @@ import json
 import dotenv
 import os
 
+# from fastapi.security import OAuth2PasswordBearer
+# from fastapi.logger import logger
+# from pydantic import HttpUrl
+# from typing import ClassVar
+# from pydantic_settings import BaseSettings
+# from pyngrok import ngrok
+# import uvicorn
 
+# Loaded keys
 dotenv.load_dotenv('./keys.env')
-
 api_key = os.getenv('API_KEY')
 scripts_url = os.getenv('APPSCRIPTS_URL')
 db_url = os.getenv('FIREBASE_URL')
@@ -36,9 +35,6 @@ current_datetime = current_datetime_utc + timedelta(hours=7)
 date_str = current_datetime.strftime('%Y-%m-%d')
 time_str = current_datetime.strftime('%H:%M:%S')
 
-# cred_path = os.path.join(os.path.dirname(__file__), 'credentials.json')
-# credentails_from_env = os.getenv('CREDENTIALS')
-# URL to your hosted JSON file (ensure this is publicly accessible or has correct auth headers)
 
 def load_credentials():
     if 'DYNO' in os.environ:
@@ -89,8 +85,6 @@ def get_transactions_reference():
     return db.reference("/transactions")
 
 
- # TODO !!! Typo invertment != invesment !!!
-
 def from_eng_to_thai(types):
     mapping = {
     "snacks": "ขนม/น้ำดื่ม",
@@ -102,20 +96,26 @@ def from_eng_to_thai(types):
 
     return mapping.get(types, types)
 
+
 async def push_data_to_google_sheets(transaction_data):
-    
     params = {
         "action": transaction_data['action'],
-        "wallet_id": transaction_data['wallet'],
-        "wallet_after_balance": transaction_data['wallet_after_balance'],
+
+        "origin_wallet_id": transaction_data.get('wallet', 0),
+        "origin_wallet_value": transaction_data.get('wallet_after_balance', 0),
+
+        "destination_wallet_id": transaction_data.get('destination_wallet', ''),
+        "destination_wallet_value": transaction_data.get('destination_wallet_value', 0),
+
         "types": transaction_data['types'],
-        "rawAmount": transaction_data['add_on'],
+        "rawAmount": transaction_data.get('add_on', 0),
         "descriptions": transaction_data['descriptions']
     }
 
+    print(params)
+
     async with httpx.AsyncClient() as client:
         response = await client.get(scripts_url, params=params, follow_redirects=True)
-        
         if response.status_code == 200:
             print("Success! Response:", response.json())
         else:
@@ -123,6 +123,7 @@ async def push_data_to_google_sheets(transaction_data):
             print(f"Response Text: {response.text}")
 
 
+# Check specify Wallet
 @app.get("/api/v5/check/wallet-balance/{wallet_name}")
 async def wallet_balance(
     wallet_name: str,
@@ -133,12 +134,13 @@ async def wallet_balance(
         
         if value:
             # call to push data into googlesheet 
-            return {"date": date_str, "value": value}
+            return {"date": date_str, "value": round(value, 2)}
         
         raise HTTPException(status_code=404, detail="No value available yet")
     raise HTTPException(status_code=401, detail="Invalid API key")
 
 
+# Check all Wallet
 @app.get("/api/v5/check/wallet-balance")
 async def all_wallet_balances(
     token: str = Query(..., description="API Key")
@@ -147,14 +149,15 @@ async def all_wallet_balances(
     if token and token in api_key:
  
         value = db.reference("/wallet_id").get()
-
+        rounded_value = {k: round(v, 2) for k, v in value.items()}
         if value:
-            return {"date": date_str, "value": value, "sum": str(round(sum(value.values()), 2)) + " Baht"}
+            return {"date": date_str, "value": rounded_value, "sum": str(round(sum(value.values()), 2)) + " Baht"}
         else:
             raise HTTPException(status_code=404, detail="No value available yet")
     else:
         print("Invalid API key")
         raise HTTPException(status_code=401, detail="Invalid API key")
+
 
 @app.get("/api/v5/check/transaction/{date}")
 async def transactions_by_date(
@@ -195,7 +198,7 @@ async def income(
         
         wallet_ref = get_wallet_reference(wallet_name)
         current_wallet_value = wallet_ref.get()
-        new_wallet_value = current_wallet_value - money
+        new_wallet_value = current_wallet_value + money
         wallet_ref.set(new_wallet_value)
 
         transaction_data = {
@@ -241,6 +244,7 @@ async def income(
     
     raise HTTPException(status_code=401, detail="Invalid API keys")
 
+
 @app.post("/api/v5/expense/{types}")
 async def expense(
     wallet_name: str,
@@ -266,7 +270,7 @@ async def expense(
         transaction_data = {
             'timestamp': time_str,
             'action': "expense",
-            'wallet': wallet_name,
+            'origin_wallet': wallet_name,
             'wallet_after_balance': new_wallet_value,
             'types': types_in_thai,
             'amount': money,
@@ -316,8 +320,9 @@ async def transfer_funds(
     origin_wallet_name: str,
     destination_wallet_name: str,
     money: float,
+    background_tasks: BackgroundTasks,
     token: str = Query(..., description="API Key"),
-    description: str = None,
+    description: Optional[str] = None,
 ):
     if token not in api_key:
         raise HTTPException(status_code=401, detail="Invalid API key")
@@ -338,30 +343,28 @@ async def transfer_funds(
     destination_wallet_ref.set(new_destination_balance)
 
     try:
-
         origin_transaction_data = {
             'timestamp': time_str,
-            'action': "expense",
+            'action': "transfer",
+            'types': "transfer",
+    
             'wallet': origin_wallet_name,
             'wallet_after_balance': new_origin_balance,
-            'types': "transfer",
-            'amount': money,
-            'description': description 
-        }
+            'origin_wallet': origin_wallet_name,
+            'origin_wallet_value': new_origin_balance,
 
-        destination_transaction_data = {
-            'timestamp': time_str,
-            'action': "income",
-            'wallet': destination_wallet_name,
-            'wallet_after_balance': new_destination_balance,
-            'types': "transfer",
+            'destination_wallet': destination_wallet_name,
+            'destination_wallet_value': new_destination_balance,
+            
             'amount': money,
-            'description': description 
+            'add_on': 0,
+            'descriptions': description 
         }
 
         transactions_ref = db.reference('/transactions')
         transactions_ref.child(date_str).push(origin_transaction_data)
-        transactions_ref.child(date_str).push(destination_transaction_data)
+
+        background_tasks.add_task(push_data_to_google_sheets, origin_transaction_data)
 
         return {"date": date_str, "value": {"origin wallet balance": new_origin_balance, 
                                             "destination wallet balance": new_destination_balance, 
@@ -371,14 +374,11 @@ async def transfer_funds(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-
 # @app.post("/api/v1/modify") TODO
-
 
 # uvicorn main:app --reload --host 0.0.0.0 --port 8000
     
-
-#if __name__ == "__main__":
-#    uvicorn.run(app, host="0.0.0.0", port=8000)
+# if __name__ == "__main__":
+#     uvicorn.run(app, host="0.0.0.0", port=8000)
 
 
